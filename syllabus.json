@@ -1,0 +1,28 @@
+{
+    "Stage 1": {
+        "Practical":{
+            "Rigging": ["Can assist with rigging the boat"],
+            "Launching & Recovery": ["Can launch a dinghy and get under way with instruction", "Can secure a boat to a trolley", "Can assist with recovery and stowage of dinghy and gear"],
+            "Ropework": ["Can tie a figure of eight knot and cleat a halyard"],
+            "Sailing Techniques & Manoeuvres":["Can be a responsive crew under instruction","Can steer when sailing and being towed","Can steer on a reach and go about","Understands the effect of basic boat controls","Understands the basic principles of stopping, controlling speed and getting out of irons","Can paddle or row","Can call for assistance"],
+            "Clothing & Equipment":["Can put on personal buoyancy correctly", "Is confident in the water wearing personal buoyancy"],
+            "Capsize Recovery": ["Understands the importance of staying with the boat"]
+        },
+        "Sailing Background":{
+            "General":["Can name basic parts of the boat","Understands what action to take to assist those needing help","Understands how to prepare for a tow"],
+            "Clothing & Equipment": ["Understands personal safety - and knows what to wear for sailing"],
+            "Meteorology": ["Has knowledge of wind direction"]
+        }
+        
+    },
+    "Stage 2": {
+        "Practical": {
+            "Cat 1":["Criteria 1","Criteria 2","Criteria 3"],
+            "Cat 2":["Criteria 1","Criteria 2","Criteria 3"]
+        },
+        "Sailing Background": {
+            "Cat 1":["Criteria 1","Criteria 2","Criteria 3"],
+            "Cat 2":["Criteria 1","Criteria 2","Criteria 3"]
+        }
+    }
+}

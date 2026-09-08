@@ -1,65 +1,95 @@
+import json as js
+
+syllabus_data = js.load(open("syllabus.json"))
+
 class User:
     def __init__(self, name):
         self.name = name
+        self.courses = []  # courses the user is assigned to
+        self.feedback = [] 
+
+    def __str__(self):
+        return self.name
+
+    def leave_feedback(self, person, note):
+        person.feedback.append(f"[{self.name}]: {note}")
 
 class Office(User):
     def __init__(self, name):
-        super().__init__(name)
-        self.courses = [] # courses the office is managing
+        super().__init__(name) 
+        
         self.users = [] # users the office is managing
         self.Certificates = [] # certificates the office has in stock
         #work on certificate pending and issued
     def CreateCourse(self, name):
         return Course(name)
+
+    def issue_certificate(self, sailor, name):
+        cert = f"Certificate '{name}' - {sailor.name} - DATE HERE"
+        sailor.certificates.append(cert)
+        return f" Issued {cert}"
     
 class SI(User):
     def __init__(self, name):
         super().__init__(name)
-        self.courses = [] # courses the SI is assigned to
+
+
+        
 class DI(User):
     def __init__(self, name):
         super().__init__(name)
-        self.courses = [] # courses the DI is assigned to
-        self.feedback = [] # feedback from SIs 
 
-class Sailor():
+class Sailor(User):
     def __init__(self, name):
-        self.name = name # name
+        super().__init__(name)
         self.progress = {} # progress in course incase uncompleted at finish
         self.courses = [] # courses the sailor is enrolled in
-        self.feedback = [] # feedback from SIs and DIs
         self.certificates = [] # certificates earned by the sailor/ Stages completed
         self.medical = [] # medical information for the sailor
 
+    def initialise_stage(self, stage_name, syllabus):
+        if stage_name not in self.progress:
+            self.progress[stage_name] = {}
+
+        if stage_name in syllabus:
+            for section,categories in syllabus[stage_name].items():
+                for category, criteria_list in categories.items():
+                    for criterion in criteria_list:
+                        if criterion not in self.progress[stage_name]:
+                            self.progress[stage_name][criterion] = False
+
+    def is_stage_completed(self, stage_name):
+        if stage_name not in self.progress:
+            return False
+        stage_ticks = self.progress[stage_name]
+        return len(stage_ticks) > 0 and all(stage_ticks.values())
+
 class Course:
-    def __init__(self, name):
+    def __init__(self, name, syllabus):
         self.name = name
+        self.syllabus = syllabus
         self.lead_instructor = None
         self.dates = []
         self.sailors = []
         self.SIs = []
         self.DIs = []
-        self.criteria = []
         self.progress = []
 
     def add_sailor(self, sailor):
         self.sailors.append(sailor)
+        sailor.initialise_stage(self.name, self.syllabus)
         sailor.courses.append(self)
-        return f"Sailor {sailor} added to course {self.name}"
+        return f"Sailor {sailor.name} added to course {self.name}"
     
     def add_SI(self, SI):
         self.SIs.append(SI)
         SI.courses.append(self)
-        return f"SI {SI} added to course {self.name}"
+        return f"SI {SI.name} added to course {self.name}"
     
     def add_DI(self, DI):
         self.DIs.append(DI)
         DI.courses.append(self)
-        return f"DI {DI} added to course {self.name}"
-
-    def add_criteria(self, criteria):
-        self.criteria.append(criteria)
-        return f"Criteria {criteria} added to course {self.name}"
+        return f"DI {DI.name} added to course {self.name}"
 
     def get_course_info(self):
         return {
@@ -70,112 +100,144 @@ class Course:
             "criteria": self.criteria
         }
 
-    def update_criteria(self, sailor, criterion, achieved):
-        for entry in self.progress:
-            if entry["sailor"] == sailor:
-                if criterion in entry["criteria"]:
-                    entry["criteria"][criterion] = achieved
-                    return f"Criteria {criterion} for sailor {sailor} updated to {achieved}"
-                else:
-                    return f"Criterion {criterion} not found for sailor {sailor}"
-        return f"Sailor {sailor} not found in course"
+    def update_criterion(self, sailor, criterion, status: bool):
+        if self.name not in sailor.progress:
+            return f"Sailor {sailor.name} is not enrolled in course {self.name}"
 
-    def build_course(self):
-        for sailor in self.sailors:
-            self.progress.append({
-                "sailor": sailor,
-                "criteria":{ 
-                    criterion: False 
-                    for criterion in self.criteria
-                            }
-                })
+        if criterion in sailor.progress[self.name]:
+            sailor.progress[self.name][criterion] = status
 
-    def show_sailor_progress(self, sailor):
-        for entry in self.progress:
-            if entry["sailor"] == sailor:
-                
-                criteria = entry["criteria"]
-                achieved = sum(criteria.values())
-                total = len(criteria)
+            icon = "✓" if status else "○"
+            action = "Ticked" if status else "Unticked"
+            print(f"[{icon}] {action} for {sailor.name}: '{criterion}'")
+            if status and sailor.is_stage_completed(self.name):
+                print(f"\n📢 [OFFICE NOTIFICATION] {sailor.name} has completed ALL criteria for {self.name}!\n")
+        else:
+            print(f"⚠️ Criterion '{criterion}' not found in {self.name}.")
+        
 
-                print(f"\n{sailor.name} - {self.name}")
-                print("-" * 30)
+    def print_sailor_progress(self, sailor):
+        if self.name not in sailor.progress:
+            print(f"{sailor.name} is not enrolled in {self.name}.")
+            return
 
-                for criterion, completed in criteria.items():
-                    if completed:
-                        print(f"✓ {criterion}")
-                    else:
-                        print(f"○ {criterion}")
+        print(f"\n==========================================")
+        print(f" PROGRESS REPORT: {sailor.name} ({self.name})")
+        print(f"==========================================")
 
-                print("-" * 30)
-                print(f"Progress: {achieved}/{total} ({achieved / total * 100:.0f}%)")
-                return
+        stage_syllabus = self.syllabus.get(self.name, {})
+        sailor_ticks = sailor.progress[self.name]
 
-        print(f"Sailor {sailor} not found")
+        for section_name, categories in stage_syllabus.items():
+            print(f"\n══ {section_name.upper()} ══")
+            for category_name, criteria_list in categories.items():
+                print(f"  [{category_name}]")
+                for criterion in criteria_list:
+                    status = "✓" if sailor_ticks.get(criterion, False) else "○"
+                    print(f"    {status} {criterion}")
 
-    def build_ticklist(self):
-        print(self.name)
-        print("=" * (25 + len(self.sailors) * 10))
-        print(f"{"Criteria":<25}", end="")
-        for sailor in self.sailors:
-            print(f"{sailor.name:^10}", end="")
+        achieved = sum(sailor_ticks.values())
+        total = len(sailor_ticks)
+        pct = (achieved / total * 100) if total > 0 else 0
+        print(f"\n------------------------------------------")
+        print(f" Total Progress: {achieved}/{total} ({pct:.0f}%)")
+        print(f"------------------------------------------\n")
 
-        print()
-        print("-" * (25 + len(self.sailors) * 10))
-        for criterion in self.criteria:
-            print(f"{criterion:<25}", end="")
 
-            for sailor in self.sailors:
-
-                for progress in self.progress:
-                    if progress["sailor"] == sailor:
-                        completed = progress["criteria"][criterion]
-
-                        if completed:
-                            # print tick
-                            print(f"{'✓':^10}", end="")
-                        else:
-                            # print circle
-                            print(f"{'○':^10}", end="") 
-
-            print()
-        print("-" * (25 + len(self.sailors) * 10))
-        print(f"{"Progress":<25}", end="")
-        for sailor in self.sailors:
-            for progress in self.progress:
-                if progress["sailor"] == sailor:
-                    achieved = sum(progress["criteria"].values())
-                    total = len(progress["criteria"])
-                    percentage = f"{achieved / total * 100:.0f}%"
-                    print(percentage.center(10), end="")
 
     def set_lead_instructor(self, lead_instructor):
         self.lead_instructor = lead_instructor
         return f"Lead instructor {lead_instructor.name} set for course {self.name}"
 
+    def build_ticklist(self):
+        # Gather all criteria to determine appropriate column width
+        all_criteria = []
+        for section, categories in self.syllabus[self.name].items():
+            for category, criteria_list in categories.items():
+                all_criteria.extend(criteria_list)
 
-ollie = Sailor("Ollie")
-ollie2 = Sailor("Ollie2")
-ben = Sailor("Ben")
-stage1 = Course("Stage 1")
-stage1.add_sailor(ollie)
-stage1.add_sailor(ollie2)
-stage1.add_sailor(ben)
-will = SI("Will")
-stage1.add_SI(will)
-john = DI("John")
-stage1.set_lead_instructor(will)
-stage1.add_DI(john)
-stage1.add_criteria("Criteria 1")
-stage1.add_criteria("Criteria 2")
-stage1.add_criteria("Criteria 3")
-stage1.get_course_info()
-stage1.build_course()
-stage1.update_criteria(ollie, "Criteria 2", True)
-stage1.update_criteria(ben, "Criteria 3", True)
-stage1.update_criteria(ollie, "Criteria 1", True)
-#stage1.show_sailor_progress(ollie)
-stage1.build_ticklist()
+        if all_criteria:
+            max_len = max(len(c) for c in all_criteria)
+        else:
+            max_len = 25
+
+        # If the longest criterion is >250 chars, render it across two lines
+        two_line_mode = max_len > 100
+
+        # Column width: use longest criterion (or half when two-line mode)
+        if two_line_mode:
+            col_width = max(25, (max_len + 1) // 2)
+        else:
+            col_width = max(25, max_len)
+
+        width = col_width + len(self.sailors) * 12
+        print(f"\n{self.name} Ticklist")
+        print("=" * width)
+
+        # Header
+        print(f"{'Criteria':<{col_width}}", end="")
+        for sailor in self.sailors:
+            print(f"{sailor.name:^12}", end="")
+        print(f"\n{'-' * width}")
+
+        # Loop through the 3 levels of JSON syllabus
+        for section, categories in self.syllabus[self.name].items():
+            for category, criteria_list in categories.items():
+                for criterion in criteria_list:
+                    if not two_line_mode or len(criterion) <= col_width:
+                        # Single-line display
+                        print(f"{criterion:<{col_width}}", end="")
+
+                        for sailor in self.sailors:
+                            completed = sailor.progress.get(self.name, {}).get(criterion, False)
+                            mark = "✓" if completed else "○"
+                            print(f"{mark:^12}", end="")
+                        print()
+                    else:
+                        # Two-line display: split on last space within col_width to avoid mid-word breaks
+                        split_pos = criterion.rfind(' ', 0, col_width)
+                        if split_pos == -1:
+                            split_pos = col_width
+                        part1 = criterion[:split_pos]
+                        part2 = criterion[split_pos:].lstrip()
+
+                        # If remainder is still too long, truncate with ellipsis
+                        if len(part2) > col_width:
+                            part2 = part2[:max(0, col_width - 3)] + '...'
+
+                        # First line with marks
+                        print(f"{part1:<{col_width}}", end="")
+                        for sailor in self.sailors:
+                            completed = sailor.progress.get(self.name, {}).get(criterion, False)
+                            mark = "✓" if completed else "○"
+                            print(f"{mark:^12}", end="")
+                        print()
+
+                        # Second line with the remainder of the text and blank mark columns
+                        print(f"{part2:<{col_width}}", end="")
+                        for _ in self.sailors:
+                            print(f"{'':^12}", end="")
+                        print()
+
+        print("-" * width)
+
+
+if __name__ == "__main__":
+    ollie = Sailor("Ollie")
+    ollie2 = Sailor("Ollie2")
+    course = Course("Stage 1", syllabus_data)
+    course.add_sailor(ollie)
+    course.add_sailor(ollie2)
+
+    # 1. Tick a criterion
+    course.update_criterion(ollie, "Can assist with rigging the boat", True)
+
+    # 2. Untick it (e.g. marked by mistake)
+    course.update_criterion(ollie2, "Can assist with rigging the boat", False)
+
+    # View progress
+    course.print_sailor_progress(ollie)
+    course.build_ticklist()
 
 """
 Office creates course
