@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sailing Progress Tracker</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172b3a; background: #f3f6f7; }
+      body { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+      header, main, section { background: white; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+      header { background: #123b50; color: white; }
+      h1, h2, h3 { margin-top: 0; }
+      .layout { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 1rem; align-items: start; }
+      form { margin: 0.6rem 0; }
+      input[type="text"], textarea, select { box-sizing: border-box; width: 100%; padding: 0.6rem; border: 1px solid #aebdc5; border-radius: 5px; }
+      textarea { min-height: 90px; resize: vertical; }
+      button { padding: 0.55rem 0.8rem; border: 0; border-radius: 5px; color: white; background: #176b73; cursor: pointer; }
+      button:hover { background: #10545b; }
+      .row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+      .sailor-link { display: block; padding: 0.65rem; margin: 0.3rem 0; border-radius: 5px; color: inherit; text-decoration: none; background: #f0f4f5; }
+      .sailor-link.active { outline: 2px solid #176b73; }
+      .muted { color: #536873; font-size: 0.9rem; }
+      .flash { padding: 0.7rem; border-radius: 5px; margin: 0.5rem 0; background: #e4f4ef; }
+      .flash.error { background: #fbe9e6; }
+      .criterion { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #e8edef; }
+      .criterion form { flex: 0 0 auto; margin: 0; }
+      fieldset { border: 0; padding: 0; margin: 0 0 1rem; }
+      legend { font-weight: 650; margin-bottom: 0.3rem; }
+      .note { border-left: 3px solid #8eafb2; padding: 0.4rem 0.7rem; margin: 0.7rem 0; background: #f5f8f8; }
+      @media (max-width: 700px) { body { padding: 0.75rem; } .layout { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sailing Progress Tracker</h1>
+      <p>Track sailor skills and keep notes as they progress through the syllabus.</p>
+    </header>
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="flash {{ category }}" role="status">{{ message }}</div>
+    {% endfor %}
+
+    <main>
+      <form method="get" action="{{ url_for('index') }}">
+        <label for="stage">Course stage</label>
+        <select id="stage" name="stage" onchange="this.form.submit()">
+          {% for stage in courses %}
+            <option value="{{ stage }}" {% if stage == course.name %}selected{% endif %}>{{ stage }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <div class="layout">
+        <section>
+          <h2>Sailors</h2>
+          <form method="post" action="{{ url_for('add_sailor') }}">
+            <input type="hidden" name="stage" value="{{ course.name }}">
+            <label for="sailor-name">Add a sailor</label>
+            <input id="sailor-name" name="name" type="text" maxlength="100" required>
+            <button type="submit">Add sailor</button>
+          </form>
+          {% if sailors %}
+            {% for sailor in sailors %}
+              <a class="sailor-link {% if selected_sailor == sailor %}active{% endif %}"
+                 href="{{ url_for('index', stage=course.name, sailor=sailor.name) }}">
+                <strong>{{ sailor.name }}</strong>
+                <span class="muted">{{ progress[sailor.name].complete }}/{{ progress[sailor.name].total }} skills</span>
+              </a>
+            {% endfor %}
+          {% else %}
+            <p class="muted">No sailors in this stage yet.</p>
+          {% endif %}
+        </section>
+
+        <section>
+          {% if selected_sailor %}
+            <div class="row">
+              <h2>{{ selected_sailor.name }}</h2>
+              <span>{{ progress[selected_sailor.name].complete }}/{{ progress[selected_sailor.name].total }}
+                ({{ progress[selected_sailor.name].percent }}%)</span>
+            </div>
+            {% for section_name, categories in course.syllabus[course.name].items() %}
+              <h3>{{ section_name }}</h3>
+              {% for category_name, criteria_list in categories.items() %}
+                <fieldset>
+                  <legend>{{ category_name }}</legend>
+                  {% for criterion in criteria_list %}
+                    <div class="criterion">
+                      <span>{{ criterion }}</span>
+                      <form method="post" action="{{ url_for('update_criterion', sailor_name=selected_sailor.name) }}">
+                        <input type="hidden" name="stage" value="{{ course.name }}">
+                        <input type="hidden" name="criterion" value="{{ criterion }}">
+                        <label>
+                          <input type="checkbox" name="completed" onchange="this.form.submit()"
+                                 {% if selected_sailor.progress[course.name][criterion] %}checked{% endif %}>
+                          Complete
+                        </label>
+                      </form>
+                    </div>
+                  {% endfor %}
+                </fieldset>
+              {% endfor %}
+            {% endfor %}
+
+            <h3>Instructor notes</h3>
+            <form method="post" action="{{ url_for('add_note', sailor_name=selected_sailor.name) }}">
+              <input type="hidden" name="stage" value="{{ course.name }}">
+              <label for="note">Add a note</label>
+              <textarea id="note" name="note" maxlength="2000" required></textarea>
+              <button type="submit">Save note</button>
+            </form>
+            {% if selected_sailor.notes %}
+              {% for note in selected_sailor.notes|reverse %}
+                <div class="note">
+                  <div class="muted">{{ note.created_at }}</div>
+                  <div>{{ note.text }}</div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="muted">No notes yet.</p>
+            {% endif %}
+          {% else %}
+            <h2>Choose a sailor</h2>
+            <p class="muted">Select a sailor to review their checklist and add notes.</p>
+          {% endif %}
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
