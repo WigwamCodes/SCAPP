@@ -2,7 +2,8 @@ import unittest
 
 from scapp import Course, Office, syllabus_data
 from web_app import create_app
-
+import tempfile
+from pathlib import Path
 
 TEST_SYLLABUS = {
     "Stage 1": {
@@ -30,9 +31,15 @@ class CourseTests(unittest.TestCase):
 
 class TrackerWebTests(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(TEST_SYLLABUS)
+        self.temp_dir = tempfile.TemporaryDirectory()
+        database_path = Path(self.temp_dir.name) / "test.sqlite3"
+
+        self.app = create_app(TEST_SYLLABUS, database_path)
         self.app.config["TESTING"] = True
         self.client = self.app.test_client()
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
 
     def add_sailor(self, name="Alex"):
         return self.client.post(
