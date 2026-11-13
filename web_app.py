@@ -1,8 +1,6 @@
 from datetime import datetime
 import secrets
-
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
-
 from scapp import Course, Sailor, syllabus_data
 
 
