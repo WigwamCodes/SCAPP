@@ -211,7 +211,14 @@ def create_app(syllabus=None, database_path=None):
             abort(404)
 
         flash("Progress updated.", "success")
-        return course_redirect(course_id, sailor["id"])
+        return redirect(
+            url_for(
+                "course_detail",
+                course_id=course_id,
+                sailor_id=sailor["id"],
+                _anchor=f"criterion-{get_criteria(course).index(criterion)}",
+            )
+        )
 
     @app.post("/courses/<int:course_id>/criteria")
     def update_criterion_for_course(course_id):

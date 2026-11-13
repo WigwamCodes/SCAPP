@@ -114,12 +114,14 @@ class TrackerWebTests(unittest.TestCase):
         sailor = self.find_sailor(self.course_id, "Alex")
         url = f"/courses/{self.course_id}/sailors/{sailor['id']}/criteria"
 
-        ticked = self.client.post(
+        redirect_response = self.client.post(
             url,
             data={"criterion": "Can steer", "completed": "on"},
-            follow_redirects=True,
         )
-        self.assertIn(b"1/2", ticked.data)
+        self.assertIn("#criterion-0", redirect_response.location)
+        checklist = self.client.get(redirect_response.location)
+        self.assertIn(b'id="criterion-0"', checklist.data)
+        self.assertIn(b"1/2", checklist.data)
 
         unticked = self.client.post(
             url,

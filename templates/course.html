@@ -77,7 +77,7 @@
 
   {% if selected_sailor %}
   <section>
-    <div class="row">
+    <div class="row sticky-sailor-header">
       <div>
         <h3>{{ selected_sailor.name }}'s checklist</h3>
         <span class="muted">
@@ -131,7 +131,7 @@
         </div>
       </details>
       {% for criterion in criteria_list %}
-      <div class="criterion">
+      <div class="criterion" id="criterion-{{ criteria.index(criterion) }}">
         <span>{{ criterion }}</span>
         <form method="post"
           action="{{ url_for('update_sailor_criterion', course_id=course.id, sailor_id=selected_sailor.id) }}">
