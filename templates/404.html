@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <section>
+    <div class="stage-label">404</div>
+    <h2>Page not found</h2>
+    <p class="muted">That page or course could not be found. It may have moved or been removed.</p>
+    <a href="{{ url_for('index') }}">Back to all courses</a>
+  </section>
+</main>
+{% endblock %}

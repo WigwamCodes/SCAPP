@@ -11,7 +11,7 @@ def get_connection(database_path):
 
 
 def init_db(database_path, syllabus):
-    """Create the database tables and register the syllabus courses."""
+    """Create the database tables and migrate existing stage-based courses."""
 
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -28,7 +28,8 @@ def init_db(database_path, syllabus):
 
             CREATE TABLE IF NOT EXISTS courses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE
+                name TEXT NOT NULL UNIQUE,
+                stage TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS enrolments (
@@ -69,9 +70,17 @@ def init_db(database_path, syllabus):
             );
         """)
 
-        for course_name in syllabus:
+        course_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(courses)")
+        }
+        if "stage" not in course_columns:
+            connection.execute("ALTER TABLE courses ADD COLUMN stage TEXT")
+            connection.execute("UPDATE courses SET stage = name")
             connection.execute(
-                "INSERT OR IGNORE INTO courses (name) VALUES (?)", (course_name,)
+                """
+                DELETE FROM courses
+                WHERE id NOT IN (SELECT course_id FROM enrolments)
+                """
             )
 
         connection.commit()
@@ -80,7 +89,63 @@ def init_db(database_path, syllabus):
         connection.close()
 
 
-def add_sailor_to_course(database_path, name, course_name, criteria):
+def create_course(database_path, name, stage):
+    """Create a named course instance based on a syllabus stage."""
+    connection = get_connection(database_path)
+
+    try:
+        result = connection.execute(
+            "INSERT OR IGNORE INTO courses (name, stage) VALUES (?, ?)",
+            (name, stage),
+        )
+        connection.commit()
+        if result.rowcount == 0:
+            return None
+        return result.lastrowid
+
+    finally:
+        connection.close()
+
+
+def get_courses(database_path):
+    """Retrieve course instances with overall checklist completion."""
+    connection = get_connection(database_path)
+
+    try:
+        rows = connection.execute(
+            """
+            SELECT courses.id, courses.name, courses.stage,
+                   COUNT(DISTINCT enrolments.sailor_id) AS sailor_count,
+                   COUNT(progress.criterion) AS total_criteria,
+                   COALESCE(SUM(progress.completed), 0) AS completed_criteria
+            FROM courses
+            LEFT JOIN enrolments ON enrolments.course_id = courses.id
+            LEFT JOIN progress ON progress.enrolment_id = enrolments.id
+            GROUP BY courses.id
+            ORDER BY courses.stage COLLATE NOCASE, courses.name COLLATE NOCASE
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    finally:
+        connection.close()
+
+
+def get_course_by_id(database_path, course_id):
+    """Retrieve one course instance."""
+    connection = get_connection(database_path)
+
+    try:
+        row = connection.execute(
+            "SELECT id, name, stage FROM courses WHERE id = ?", (course_id,)
+        ).fetchone()
+        return dict(row) if row is not None else None
+
+    finally:
+        connection.close()
+
+
+def add_sailor_to_course(database_path, name, course_id, criteria):
     """Save a sailor, enrol them on a course and initialise their progress."""
 
     connection = get_connection(database_path)
@@ -101,13 +166,12 @@ def add_sailor_to_course(database_path, name, course_name, criteria):
             "SELECT id FROM sailors WHERE name_key = ?", (name_key,)
         ).fetchone()
 
-        # Find the course's database ID.
         course = connection.execute(
-            "SELECT id FROM courses WHERE name = ?", (course_name,)
+            "SELECT id FROM courses WHERE id = ?", (course_id,)
         ).fetchone()
 
         if course is None:
-            raise ValueError(f"Course not found: {course_name}")
+            raise ValueError(f"Course not found: {course_id}")
 
         # Enrol the sailor if they aren't already enrolled.
         connection.execute(
@@ -143,7 +207,7 @@ def add_sailor_to_course(database_path, name, course_name, criteria):
         connection.close()
 
 
-def get_sailors_for_course(database_path, course_name):
+def get_sailors_for_course(database_path, course_id):
     """Retrieve sailors, progress and notes for a course."""
 
     connection = get_connection(database_path)
@@ -154,11 +218,10 @@ def get_sailors_for_course(database_path, course_name):
             SELECT sailors.id, sailors.name, enrolments.id AS enrolment_id
             FROM sailors
             JOIN enrolments ON sailors.id = enrolments.sailor_id
-            JOIN courses ON courses.id = enrolments.course_id
-            WHERE courses.name = ?
+            WHERE enrolments.course_id = ?
             ORDER BY sailors.name COLLATE NOCASE
             """,
-            (course_name,),
+            (course_id,),
         ).fetchall()
 
         sailors = []
@@ -204,27 +267,35 @@ def get_sailors_for_course(database_path, course_name):
         connection.close()
 
 
-def update_criterion(database_path, sailor_name, course_name, criterion, completed):
-    """Save a sailor's progress against a course criterion."""
+def update_criteria(
+    database_path, course_id, criteria, completed, sailor_id=None
+):
+    """Set one or more criteria for all, or one, sailor in a course."""
+    if not criteria:
+        return 0
 
     connection = get_connection(database_path)
 
     try:
+        criterion_placeholders = ", ".join("?" for _ in criteria)
+        sailor_filter = ""
+        parameters = [int(completed), *criteria, course_id]
+        if sailor_id is not None:
+            sailor_filter = " AND sailor_id = ?"
+            parameters.append(sailor_id)
+
         result = connection.execute(
-            """
+            f"""
             UPDATE progress
             SET completed = ?
-            WHERE criterion = ?
+            WHERE criterion IN ({criterion_placeholders})
               AND enrolment_id IN (
-                  SELECT enrolments.id
+                  SELECT id
                   FROM enrolments
-                  JOIN sailors ON sailors.id = enrolments.sailor_id
-                  JOIN courses ON courses.id = enrolments.course_id
-                  WHERE sailors.name_key = ?
-                    AND courses.name = ?
+                  WHERE course_id = ?{sailor_filter}
               )
             """,
-            (int(completed), criterion, sailor_name.casefold(), course_name),
+            parameters,
         )
 
         connection.commit()
