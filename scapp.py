@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from datetime import date
 
 
 def load_syllabus():
@@ -28,15 +29,16 @@ class Office(User):
     def __init__(self, name):
         super().__init__(name)
         self.users = []
-        self.Certificates = []
+        self.certificates = []
 
     def CreateCourse(self, name, syllabus=None):
         return Course(name, syllabus_data if syllabus is None else syllabus)
 
     def issue_certificate(self, sailor, name):
-        cert = f"Certificate '{name}' - {sailor.name} - DATE HERE"
+        cert = f"Certificate '{name}' - {sailor.name} - {date.today():%d-%m-%Y}"
         sailor.certificates.append(cert)
-        return f" Issued {cert}"
+        self.certificates.append(cert)
+        return f"Issued {cert}"
 
 
 class SI(User):
@@ -193,9 +195,7 @@ class Course:
             if not two_line_mode or len(criterion) <= col_width:
                 print(f"{criterion:<{col_width}}", end="")
                 for sailor in self.sailors:
-                    completed = sailor.progress.get(self.name, {}).get(
-                        criterion, False
-                    )
+                    completed = sailor.progress.get(self.name, {}).get(criterion, False)
                     mark = "✓" if completed else "○"
                     print(f"{mark:^12}", end="")
                 print()
@@ -211,9 +211,7 @@ class Course:
 
             print(f"{part1:<{col_width}}", end="")
             for sailor in self.sailors:
-                completed = sailor.progress.get(self.name, {}).get(
-                    criterion, False
-                )
+                completed = sailor.progress.get(self.name, {}).get(criterion, False)
                 mark = "✓" if completed else "○"
                 print(f"{mark:^12}", end="")
             print()
