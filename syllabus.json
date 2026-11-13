@@ -45,27 +45,142 @@
     },
     "Stage 2": {
         "Practical": {
-            "Cat 1": [
-                "Criteria 1",
-                "Criteria 2",
-                "Criteria 3"
+            "Rigging": [
+                "Can put a boat head to wind for rigging.",
+                "Can rig a dinghy."
             ],
-            "Cat 2": [
-                "Criteria 4",
-                "Criteria 5",
-                "Criteria 6"
+            "Launching & Recovery": [
+                "Understands how to manoeuvre a trolley clear of other boats and overhead cables.",
+                "Can launch and recover a small dinghy."
+            ],
+            "Ropework": [
+                "Can tie a round turn & two half hitches and a reef knot."
+            ],
+            "Sailing Techniques & Manoeuvres": [
+                "Can control speed, and stop by lying-to.",
+                "Can get out of irons.",
+                "Can go about (close reach to close reach).",
+                "Can crew a boat effectively.",
+                "Can sail a shallow triangle across the wind under supervision (gybing optional)."
+            ],
+            "Understands the Principles of": [
+                "The five essentials.",
+                "Returning to a beach or pontoon."
+            ],
+            "Capsize Recovery": [
+                "Can be scooped in during capsize recovery",
+                "Can right one type of dinghy."
             ]
         },
         "Sailing Background": {
-            "Cat 3": [
-                "Criteria 7",
-                "Criteria 8",
-                "Criteria 9"
+            "Sailing Manoeuvres": [
+                "Understands the No Go Zone",
+                "Understands what is meant by windward, leeward and gybe"
             ],
-            "Cat 4": [
-                "Criteria 10",
-                "Criteria 11",
-                "Criteria 12"
+            "General": [
+                "Has knowledge of: Spars and rigging.",
+                "Parts of the sail.",
+                "Sail controls and foils.",
+                "Offshore and onshore winds.",
+                "Knows the importance of telling someone ashore you are going afloat.",
+                "The dangers of human-made hazards, e.g. overhead power lines, weirs."
+            ],
+            "Rules of the Road": [
+                "Has knowledge of port/starboard rule."
+            ],
+            "Meteorology": [
+                "Understands several ways of finding wind direction."
+            ],
+            "Clothing & Equipment": [
+                "Can choose and correctly adjust a personal buoyancy aid.",
+                "Understands what to wear."
+            ]
+        }
+    },
+    "Stage 3": {
+        "Practical": {
+            "Rigging, Launching & Recovery": [
+                "Can rig, launch and recover in a variety of winds.",
+                "Can reef a dinghy ashore according to weather conditions.",
+                "Can store a dinghy ashore."
+            ],
+            "Ropework": [
+                "Can tie a bowline, clove hitch and rolling hitch."
+            ],
+            "Sailing Techniques & Manoeuvres": [
+                "Can demonstrate the basic principles of the following: The five essentials.",
+                "Sail setting.",
+                "Balance.",
+                "Trim.",
+                "Sailing on all points of sail on a triangular course.",
+                "Tacking upwind.",
+                "Gybing from a training run.",
+                "Righting a small capsized dinghy as helm/crew.",
+                "Coming alongside a moored boat.",
+                "Preparing for/taking up tow from power craft.",
+                "Picking up a mooring.",
+                "Understands how to and can recover a man overboard."
+            ],
+            "Racing": [
+                "Understands the course and starting procedure."
+            ]
+        },
+        "Sailing Background": {
+            "Manoeuvres": [
+                "Understands the points of sailing"
+            ],
+            "General": [
+                "Understands how a sail works - basic aerodynamics.",
+                "Knows basic terminology for use afloat (windward, leeward, bear away, luff up).",
+                "Understands the importance of clear communication aboard.",
+                "Understands lee-shore dangers and sailing in close company with other water users.",
+                "Understands advice to inland sailors for coastal sailing.",
+                "Knows the importance of personal safety and telling someone ashore.",
+                "Understands the dangers of hypothermia and the use of correct clothing for protection.",
+                "Understands the basic principles of Sail Safe: The 7 Common Senses."
+            ],
+            "Rules of the Road": [
+                "Knows the basic rules of the road - port/starboard, windward boat and overtaking boat."
+            ]
+        }
+    },
+    "Stage 4": {
+        "Practical": {
+            "Rigging & Launching": [
+                "Can carry out the following tasks in all wind directions: Rig.",
+                "Launch.",
+                "Recover.",
+                "Can set up a boat according to weather conditions using sail and rig controls, e.g. mast rake, reefing."
+            ],
+            "Ropework": [
+                "Knows the uses of and can tie: Figure of eight.",
+                "Round turn & two half hitches.",
+                "Reef knot.",
+                "Bowline.",
+                "Clove hitch.",
+                "Rolling hitch.",
+                "Sheet bend."
+            ],
+            "Sailing Techniques & Manoeuvres": [
+                "Can demonstrate: Sailing techniques and manoeuvres from Stage 3 in a crewed boat.",
+                "Effective communication as helm and crew.",
+                "Effective use of the five essentials by helm and crew afloat including use of tell-tales.",
+                "Recovering a man overboard.",
+                "Righting a small capsized dinghy as helm/crew.",
+                "Returning to a beach, jetty or mooring safely in any wind direction."
+            ]
+        },
+        "Sailing Background": {
+            "General": [
+                "Has knowledge of: IRPCS.",
+                "Beaufort Scale.",
+                "Synoptic charts.",
+                "Tidal ebb and flow.",
+                "Spring and neap tides.",
+                "How to recover from total inversion.",
+                "Considerations for coastal sailing.",
+                "Applying the IRPCS afloat.",
+                "IALA buoyage, how to use tide tables and how to find the direction of tidal streams."
             ]
         }
     }
