@@ -1,10 +1,9 @@
-from datetime import datetime
 import secrets
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 
-from scapp import syllabus_data
 from database import (
     add_note,
     add_sailor_to_course,
@@ -15,6 +14,7 @@ from database import (
     init_db,
     update_criteria,
 )
+from scapp import syllabus_data
 
 
 def create_app(syllabus=None, database_path=None):
