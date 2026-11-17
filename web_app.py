@@ -70,6 +70,7 @@ def create_app(syllabus=None, database_path=None):
                 "complete": complete,
                 "total": total,
                 "percent": round(complete / total * 100) if total else 0,
+                "all_complete": bool(total) and complete == total,
             }
         return progress
 
@@ -153,7 +154,35 @@ def create_app(syllabus=None, database_path=None):
                 )
             )
         )
+        if course_syllabus is not None:
+            grid_sections = [
+                {
+                    "name": section_name,
+                    "categories": [
+                        {"name": category_name, "criteria": criteria_list}
+                        for category_name, criteria_list in categories.items()
+                    ],
+                }
+                for section_name, categories in course_syllabus.items()
+            ]
+        else:
+            grid_sections = (
+                [
+                    {
+                        "name": "Saved progress",
+                        "categories": [{"name": "Saved criteria", "criteria": criteria}],
+                    }
+                ]
+                if criteria
+                else []
+            )
+
         progress = get_progress(sailors, criteria)
+        criterion_complete = {
+            criterion: bool(sailors)
+            and all(sailor["progress"].get(criterion, False) for sailor in sailors)
+            for criterion in criteria
+        }
         selected_id = request.args.get("sailor_id", type=int)
         selected_sailor = next(
             (sailor for sailor in sailors if sailor["id"] == selected_id), None
@@ -163,11 +192,13 @@ def create_app(syllabus=None, database_path=None):
             "course.html",
             course=course,
             syllabus=course_syllabus,
+            grid_sections=grid_sections,
             syllabus_available=course_syllabus is not None,
             sailors=sailors,
             selected_sailor=selected_sailor,
             progress=progress,
             criteria=criteria,
+            criterion_complete=criterion_complete,
         )
 
     @app.post("/courses/<int:course_id>/sailors")
@@ -220,6 +251,25 @@ def create_app(syllabus=None, database_path=None):
             )
         )
 
+    @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/progress")
+    def update_sailor_progress(course_id, sailor_id):
+        course = get_course(course_id)
+        get_syllabus_for_course(course)
+        sailor = get_sailor(course_id, sailor_id)
+        criteria = get_criteria(course)
+        completed = request.form.get("completed") == "1"
+        updated = update_criteria(
+            database_path, course_id, criteria, completed, sailor_id
+        )
+
+        if updated:
+            state = "completed" if completed else "cleared"
+            flash(f"All criteria {state} for {sailor['name']}.", "success")
+        else:
+            flash(f"There are no criteria to update for {sailor['name']}.", "error")
+
+        return course_redirect(course_id, sailor["id"])
+
     @app.post("/courses/<int:course_id>/criteria")
     def update_criterion_for_course(course_id):
         course = get_course(course_id)
@@ -235,7 +285,10 @@ def create_app(syllabus=None, database_path=None):
             flash(f"Criterion {state} for all sailors in {course['name']}.", "success")
         else:
             flash("There are no enrolled sailors to update.", "error")
-        return course_redirect(course_id)
+        selected_id = request.form.get("sailor_id", type=int)
+        if selected_id is not None:
+            get_sailor(course_id, selected_id)
+        return course_redirect(course_id, selected_id)
 
     @app.post("/courses/<int:course_id>/categories")
     def update_category_for_course(course_id):

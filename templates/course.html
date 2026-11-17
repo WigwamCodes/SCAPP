@@ -36,130 +36,134 @@
 
   {% if sailors %}
   <section>
-    <h3>Course progress</h3>
-    <div class="roster-grid">
-      {% for sailor in sailors %}
-      <a class="sailor-card {% if selected_sailor and selected_sailor.id == sailor.id %}active{% endif %}"
-        href="{{ url_for('course_detail', course_id=course.id, sailor_id=sailor.id) }}">
-        <strong>{{ sailor.name }}</strong>
-        <div class="muted">
-          {{ progress[sailor.id].complete }}/{{ progress[sailor.id].total }} criteria
-          · {{ progress[sailor.id].percent }}%
-        </div>
-        <div class="progress-track" aria-label="{{ progress[sailor.id].percent }}% complete">
-          <div class="progress-fill" style="width: {{ progress[sailor.id].percent }}%"></div>
-        </div>
-      </a>
-      {% endfor %}
+    <div class="row">
+      <div>
+        <h3>Progress by pupil and skill</h3>
+        {% if syllabus_available %}
+        <p class="muted">Select a pupil's name to view their notes. Changes save as you make them.</p>
+        {% else %}
+        <p class="muted">Saved checklist · read-only</p>
+        {% endif %}
+      </div>
+      <span>{{ sailors|length }} pupil{{ '' if sailors|length == 1 else 's' }}</span>
+    </div>
+
+    <div class="progress-grid-wrap">
+      <table class="progress-grid">
+        <thead>
+          <tr>
+            <th class="grid-skill-heading" scope="col">Skill</th>
+            <th class="grid-bulk-heading" scope="col">All pupils</th>
+            {% for sailor in sailors %}
+            <th class="grid-pupil-heading {% if selected_sailor and selected_sailor.id == sailor.id %}selected{% endif %}"
+              scope="col">
+              <a href="{{ url_for('course_detail', course_id=course.id, sailor_id=sailor.id) }}">
+                {{ sailor.name }}
+              </a>
+              <span class="muted">
+                {{ progress[sailor.id].complete }}/{{ progress[sailor.id].total }}
+                · {{ progress[sailor.id].percent }}%
+              </span>
+              {% if syllabus_available and criteria %}
+              {% if progress[sailor.id].all_complete %}
+              <form class="grid-bulk-form" method="post"
+                action="{{ url_for('update_sailor_progress', course_id=course.id, sailor_id=sailor.id) }}"
+                onsubmit="return confirm('Clear all skills for this pupil?')">
+                <input type="hidden" name="completed" value="0">
+                <button type="submit">Clear all</button>
+              </form>
+              {% else %}
+              <form class="grid-bulk-form" method="post"
+                action="{{ url_for('update_sailor_progress', course_id=course.id, sailor_id=sailor.id) }}">
+                <input type="hidden" name="completed" value="1">
+                <button type="submit">Complete all</button>
+              </form>
+              {% endif %}
+              {% endif %}
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for section in grid_sections %}
+          <tr class="grid-section">
+            <th colspan="{{ sailors|length + 2 }}">{{ section.name }}</th>
+          </tr>
+          {% for category in section.categories %}
+          <tr class="grid-category">
+            <th colspan="{{ sailors|length + 2 }}">{{ category.name }}</th>
+          </tr>
+          {% for criterion in category.criteria %}
+          <tr id="criterion-{{ criteria.index(criterion) }}">
+            <th class="grid-skill" scope="row">{{ criterion }}</th>
+            <td class="grid-bulk-cell">
+              {% if syllabus_available %}
+              {% if criterion_complete[criterion] %}
+              <form class="grid-bulk-form" method="post"
+                action="{{ url_for('update_criterion_for_course', course_id=course.id) }}"
+                onsubmit="return confirm('Clear this skill for all pupils?')">
+                <input type="hidden" name="criterion" value="{{ criterion }}">
+                <input type="hidden" name="completed" value="0">
+                {% if selected_sailor %}
+                <input type="hidden" name="sailor_id" value="{{ selected_sailor.id }}">
+                {% endif %}
+                <button type="submit" aria-label="Clear {{ criterion }} for all pupils">Clear all</button>
+              </form>
+              {% else %}
+              <form class="grid-bulk-form" method="post"
+                action="{{ url_for('update_criterion_for_course', course_id=course.id) }}">
+                <input type="hidden" name="criterion" value="{{ criterion }}">
+                <input type="hidden" name="completed" value="1">
+                {% if selected_sailor %}
+                <input type="hidden" name="sailor_id" value="{{ selected_sailor.id }}">
+                {% endif %}
+                <button type="submit" aria-label="Mark {{ criterion }} complete for all pupils">
+                  Complete all
+                </button>
+              </form>
+              {% endif %}
+              {% else %}
+              <span class="muted">—</span>
+              {% endif %}
+            </td>
+            {% for sailor in sailors %}
+            <td class="grid-check-cell">
+              {% if syllabus_available %}
+              <form class="grid-cell-form" method="post"
+                action="{{ url_for('update_sailor_criterion', course_id=course.id, sailor_id=sailor.id) }}">
+                <input type="hidden" name="criterion" value="{{ criterion }}">
+                <label>
+                  <input type="checkbox" name="completed" value="on"
+                    aria-label="{{ sailor.name }}: {{ criterion }}"
+                    onchange="this.form.submit()"
+                    {% if sailor.progress.get(criterion, false) %}checked{% endif %}>
+                  <span class="visually-hidden">Complete {{ criterion }} for {{ sailor.name }}</span>
+                </label>
+              </form>
+              {% else %}
+              <span class="muted">
+                {{ 'Complete' if sailor.progress.get(criterion, false) else 'Not complete' }}
+              </span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </section>
-
-  {% if syllabus_available %}
+  {% else %}
   <section>
-    <h3>Update one criterion for all sailors</h3>
-    <form method="post" action="{{ url_for('update_criterion_for_course', course_id=course.id) }}">
-      <label for="bulk-criterion">Criterion</label>
-      <select id="bulk-criterion" name="criterion" required>
-        {% for criterion in criteria %}
-        <option value="{{ criterion }}">{{ criterion }}</option>
-        {% endfor %}
-      </select>
-      <label for="bulk-criterion-state">Set status</label>
-      <select id="bulk-criterion-state" name="completed">
-        <option value="1">Complete</option>
-        <option value="0">Not complete</option>
-      </select>
-      <button type="submit">Apply to all sailors</button>
-    </form>
+    <p>No sailors enrolled yet. Add sailors above to start tracking this course.</p>
   </section>
-  {% endif %}
   {% endif %}
 
   {% if selected_sailor %}
-  <section>
-    <div class="row sticky-sailor-header">
-      <div>
-        <h3>{{ selected_sailor.name }}'s checklist</h3>
-        <span class="muted">
-          {{ progress[selected_sailor.id].complete }}/{{ progress[selected_sailor.id].total }}
-          criteria · {{ progress[selected_sailor.id].percent }}%
-        </span>
-      </div>
-    </div>
-
-    {% if syllabus_available %}
-    {% for section_name, categories in syllabus.items() %}
-    <h3>{{ section_name }}</h3>
-    {% for category_name, criteria_list in categories.items() %}
-    <fieldset>
-      <legend>{{ category_name }}</legend>
-      <details class="category-tools">
-        <summary>Category actions</summary>
-        <div class="category-actions">
-          <div class="action-group">
-            <span class="action-group-label">For {{ selected_sailor.name }}</span>
-            <form method="post" action="{{ url_for('update_category_for_course', course_id=course.id) }}">
-              <input type="hidden" name="section" value="{{ section_name }}">
-              <input type="hidden" name="category" value="{{ category_name }}">
-              <input type="hidden" name="sailor_id" value="{{ selected_sailor.id }}">
-              <input type="hidden" name="completed" value="1">
-              <button type="submit">Complete</button>
-            </form>
-            <form method="post" action="{{ url_for('update_category_for_course', course_id=course.id) }}">
-              <input type="hidden" name="section" value="{{ section_name }}">
-              <input type="hidden" name="category" value="{{ category_name }}">
-              <input type="hidden" name="sailor_id" value="{{ selected_sailor.id }}">
-              <input type="hidden" name="completed" value="0">
-              <button type="submit">Clear</button>
-            </form>
-          </div>
-          <div class="action-group">
-            <span class="action-group-label">For all sailors</span>
-            <form method="post" action="{{ url_for('update_category_for_course', course_id=course.id) }}">
-              <input type="hidden" name="section" value="{{ section_name }}">
-              <input type="hidden" name="category" value="{{ category_name }}">
-              <input type="hidden" name="completed" value="1">
-              <button type="submit">Complete</button>
-            </form>
-            <form method="post" action="{{ url_for('update_category_for_course', course_id=course.id) }}">
-              <input type="hidden" name="section" value="{{ section_name }}">
-              <input type="hidden" name="category" value="{{ category_name }}">
-              <input type="hidden" name="completed" value="0">
-              <button type="submit">Clear</button>
-            </form>
-          </div>
-        </div>
-      </details>
-      {% for criterion in criteria_list %}
-      <div class="criterion" id="criterion-{{ criteria.index(criterion) }}">
-        <span>{{ criterion }}</span>
-        <form method="post"
-          action="{{ url_for('update_sailor_criterion', course_id=course.id, sailor_id=selected_sailor.id) }}">
-          <input type="hidden" name="criterion" value="{{ criterion }}">
-          <label>
-            <input type="checkbox" name="completed" onchange="this.form.submit()"
-              {% if selected_sailor.progress.get(criterion, false) %}checked{% endif %}>
-            Complete
-          </label>
-        </form>
-      </div>
-      {% endfor %}
-    </fieldset>
-    {% endfor %}
-    {% endfor %}
-    {% else %}
-    <h3>Saved checklist · read-only</h3>
-    {% for criterion in criteria %}
-    <div class="criterion">
-      <span>{{ criterion }}</span>
-      <span class="muted">
-        {% if selected_sailor.progress.get(criterion, false) %}Complete{% else %}Not complete{% endif %}
-      </span>
-    </div>
-    {% endfor %}
-    {% endif %}
-
-    <h3>Instructor notes</h3>
+  <section id="notes">
+    <h3>{{ selected_sailor.name }}'s notes</h3>
     <form method="post"
       action="{{ url_for('add_sailor_note', course_id=course.id, sailor_id=selected_sailor.id) }}">
       <label for="note">Add a note</label>
@@ -179,11 +183,7 @@
   </section>
   {% elif sailors %}
   <section>
-    <p>Select a sailor above to view and update their checklist. Category actions are available for one sailor or the whole course.</p>
-  </section>
-  {% else %}
-  <section>
-    <p>No sailors enrolled yet. Add sailors above to start tracking this course.</p>
+    <p>Select a pupil's name in the table to view and add their notes.</p>
   </section>
   {% endif %}
 </main>

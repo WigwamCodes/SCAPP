@@ -108,6 +108,35 @@ class TrackerWebTests(unittest.TestCase):
         self.assertIn(b"Alex", response.data)
         self.assertIn(b"Can steer", response.data)
         self.assertIn(b"0/2", response.data)
+        self.assertIn(b'class="progress-grid"', response.data)
+        self.assertIn(b'aria-label="Alex: Can steer"', response.data)
+        self.assertNotIn(b'id="bulk-criterion"', response.data)
+
+    def test_sailor_bulk_update_changes_only_that_sailor_in_that_course(self):
+        another_course = self.create_course("Wednesday group")
+        self.add_sailor("Alex", self.course_id)
+        self.add_sailor("Sam", self.course_id)
+        self.add_sailor("Alex", another_course)
+        alex = self.find_sailor(self.course_id, "Alex")
+
+        response = self.client.post(
+            f"/courses/{self.course_id}/sailors/{alex['id']}/progress",
+            data={"completed": "1"},
+            follow_redirects=True,
+        )
+
+        self.assertIn(b"All criteria completed for Alex", response.data)
+        self.assertTrue(all(self.find_sailor(self.course_id, "Alex")["progress"].values()))
+        self.assertFalse(any(self.find_sailor(self.course_id, "Sam")["progress"].values()))
+        self.assertFalse(
+            any(self.find_sailor(another_course, "Alex")["progress"].values())
+        )
+
+        self.client.post(
+            f"/courses/{self.course_id}/sailors/{alex['id']}/progress",
+            data={"completed": "0"},
+        )
+        self.assertFalse(any(self.find_sailor(self.course_id, "Alex")["progress"].values()))
 
     def test_criterion_can_be_ticked_and_unticked(self):
         self.add_sailor()
@@ -314,7 +343,7 @@ class TrackerWebTests(unittest.TestCase):
         self.assertEqual(detail.status_code, 200)
         self.assertIn(b"Can steer", detail.data)
         self.assertIn(b"read-only", detail.data)
-        self.assertNotIn(b'type="checkbox"', detail.data)
+        self.assertNotIn(b'<input type="checkbox"', detail.data)
 
         response = updated_client.post(
             f"/courses/{self.course_id}/criteria",
