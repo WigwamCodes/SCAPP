@@ -78,6 +78,26 @@
       color: #d7e8ec;
     }
 
+    .view-switcher {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin: 0;
+    }
+
+    .view-switcher label {
+      margin: 0;
+      color: #d7e8ec;
+    }
+
+    .view-switcher select {
+      min-height: 2.2rem;
+      min-width: 180px;
+      padding: 0.3rem 0.5rem;
+      color: #172b3a;
+      background: white;
+    }
+
     h2 {
       margin-bottom: 0.4rem;
       font-size: 1.55rem;
@@ -468,6 +488,18 @@
   <header>
     <h1><a href="{{ url_for('index') }}">Sailing Progress Tracker</a></h1>
     <p>Track course groups and sailors against the sailing syllabus.</p>
+    <form class="view-switcher" method="post" action="{{ url_for('change_view') }}">
+      <label for="view">View</label>
+      <select id="view" name="view" onchange="this.form.submit()">
+        <option value="office" {% if current_view == 'office' %}selected{% endif %}>Office</option>
+        {% for instructor in view_instructors %}
+        <option value="instructor:{{ instructor.id }}" {% if current_view == 'instructor' and current_actor_id == instructor.id %}selected{% endif %}>Instructor · {{ instructor.name }}</option>
+        {% endfor %}
+        {% for pupil in view_pupils %}
+        <option value="pupil:{{ pupil.id }}" {% if current_view == 'pupil' and current_actor_id == pupil.id %}selected{% endif %}>Pupil · {{ pupil.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
   </header>
 
   {% for category, message in get_flashed_messages(with_categories=true) %}

@@ -2,18 +2,26 @@ import secrets
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, abort, flash, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 
 from database import (
     add_note,
+    add_instructor_to_course,
     add_sailor_to_course,
     create_course,
     delete_course,
     delete_sailor,
     get_course_by_id,
+    get_course_ids_for_instructor,
+    get_course_ids_for_sailor,
     get_courses,
+    get_instructors,
+    get_instructors_for_course,
+    get_sailors,
     get_sailors_for_course,
+    instructor_can_access_course,
     init_db,
+    sailor_can_access_course,
     update_criteria,
 )
 from scapp import syllabus_data
@@ -29,6 +37,30 @@ def create_app(syllabus=None, database_path=None):
         database_path = Path(app.instance_path) / "scapp.sqlite3"
 
     init_db(database_path, syllabus)
+
+    def active_view():
+        return session.get("view", "office"), session.get("actor_id")
+
+    def require_office():
+        if active_view()[0] != "office":
+            abort(403, description="This action is available in the office view.")
+
+    def require_assigned_instructor(course_id):
+        view, actor_id = active_view()
+        if view != "instructor" or actor_id is None or not instructor_can_access_course(
+            database_path, actor_id, course_id
+        ):
+            abort(403, description="Only an instructor assigned to this course can update it.")
+
+    @app.context_processor
+    def add_view_context():
+        view, actor_id = active_view()
+        return {
+            "current_view": view,
+            "current_actor_id": actor_id,
+            "view_instructors": get_instructors(database_path),
+            "view_pupils": get_sailors(database_path),
+        }
 
     def get_course(course_id):
         course = get_course_by_id(database_path, course_id)
@@ -87,9 +119,18 @@ def create_app(syllabus=None, database_path=None):
 
     @app.get("/")
     def index():
+        view, actor_id = active_view()
         courses = get_courses(database_path)
+        if view == "instructor" and actor_id is not None:
+            course_ids = get_course_ids_for_instructor(database_path, actor_id)
+            courses = [course for course in courses if course["id"] in course_ids]
+        elif view == "pupil" and actor_id is not None:
+            course_ids = get_course_ids_for_sailor(database_path, actor_id)
+            courses = [course for course in courses if course["id"] in course_ids]
         for course in courses:
             sailors = get_sailors_for_course(database_path, course["id"])
+            if view == "pupil":
+                sailors = [sailor for sailor in sailors if sailor["id"] == actor_id]
             course_syllabus = syllabus.get(course["stage"])
             criteria = (
                 [
@@ -119,10 +160,40 @@ def create_app(syllabus=None, database_path=None):
             course["percent"] = round(complete / total * 100) if total else 0
             course["syllabus_available"] = course_syllabus is not None
 
-        return render_template("index.html", courses=courses, stages=syllabus)
+        return render_template(
+            "index.html", courses=courses, stages=syllabus,
+            current_view=view,
+        )
+
+    @app.post("/view")
+    def change_view():
+        selected = request.form.get("view", "")
+        if selected == "office":
+            session["view"] = "office"
+            session.pop("actor_id", None)
+        else:
+            try:
+                view, actor_id_text = selected.split(":", 1)
+                actor_id = int(actor_id_text)
+            except (ValueError, TypeError):
+                abort(400, description="Choose a valid view.")
+            if view == "instructor" and any(
+                item["id"] == actor_id for item in get_instructors(database_path)
+            ):
+                session["view"] = view
+                session["actor_id"] = actor_id
+            elif view == "pupil" and any(
+                item["id"] == actor_id for item in get_sailors(database_path)
+            ):
+                session["view"] = view
+                session["actor_id"] = actor_id
+            else:
+                abort(400, description="Choose an existing instructor or pupil.")
+        return redirect(url_for("index"))
 
     @app.post("/courses")
     def add_course():
+        require_office()
         stage = request.form.get("stage", "")
         name = request.form.get("name", "").strip()
 
@@ -142,6 +213,7 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/delete")
     def remove_course(course_id):
+        require_office()
         course = get_course(course_id)
         if request.form.get("confirm") != "delete":
             abort(400, description="Confirm course deletion to continue.")
@@ -152,7 +224,17 @@ def create_app(syllabus=None, database_path=None):
     @app.get("/courses/<int:course_id>")
     def course_detail(course_id):
         course = get_course(course_id)
+        view, actor_id = active_view()
+        if view == "instructor" and (
+            actor_id is None
+            or not instructor_can_access_course(database_path, actor_id, course_id)
+        ):
+            abort(403, description="This instructor is not assigned to this course.")
         sailors = get_sailors_for_course(database_path, course_id)
+        if view == "pupil" and (
+            actor_id is None or not sailor_can_access_course(database_path, actor_id, course_id)
+        ):
+            abort(403, description="Pupils can only view their own enrolled courses.")
         course_syllabus = syllabus.get(course["stage"])
         criteria = (
             get_criteria(course)
@@ -194,9 +276,14 @@ def create_app(syllabus=None, database_path=None):
             and all(sailor["progress"].get(criterion, False) for sailor in sailors)
             for criterion in criteria
         }
-        selected_id = request.args.get("sailor_id", type=int)
+        selected_id = actor_id if view == "pupil" else request.args.get("sailor_id", type=int)
         selected_sailor = next(
             (sailor for sailor in sailors if sailor["id"] == selected_id), None
+        )
+        display_sailors = (
+            [selected_sailor]
+            if view == "pupil" and selected_sailor is not None
+            else ([] if view == "pupil" else sailors)
         )
 
         return render_template(
@@ -206,6 +293,9 @@ def create_app(syllabus=None, database_path=None):
             grid_sections=grid_sections,
             syllabus_available=course_syllabus is not None,
             sailors=sailors,
+            display_sailors=display_sailors,
+            current_view=view,
+            course_instructors=get_instructors_for_course(database_path, course_id),
             selected_sailor=selected_sailor,
             progress=progress,
             criteria=criteria,
@@ -214,6 +304,7 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/sailors")
     def add_sailor(course_id):
+        require_office()
         course = get_course(course_id)
         get_syllabus_for_course(course)
         name = request.form.get("name", "").strip()
@@ -236,8 +327,24 @@ def create_app(syllabus=None, database_path=None):
         flash(f"Added {name} to {course['name']}.", "success")
         return course_redirect(course_id, sailor["id"])
 
+    @app.post("/courses/<int:course_id>/instructors")
+    def assign_instructor(course_id):
+        require_office()
+        course = get_course(course_id)
+        name = request.form.get("name", "").strip()
+        if not name or len(name) > 100:
+            flash("Enter an instructor name of 1 to 100 characters.", "error")
+            return course_redirect(course_id)
+        instructor = add_instructor_to_course(database_path, name, course_id)
+        if instructor["added"]:
+            flash(f"Assigned {instructor['name']} to {course['name']}.", "success")
+        else:
+            flash(f"{instructor['name']} is already assigned to {course['name']}.", "error")
+        return course_redirect(course_id)
+
     @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/delete")
     def remove_sailor(course_id, sailor_id):
+        require_office()
         course = get_course(course_id)
         sailor = get_sailor(course_id, sailor_id)
         if request.form.get("confirm") != "delete":
@@ -251,6 +358,7 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/criteria")
     def update_sailor_criterion(course_id, sailor_id):
+        require_assigned_instructor(course_id)
         course = get_course(course_id)
         get_syllabus_for_course(course)
         sailor = get_sailor(course_id, sailor_id)
@@ -277,6 +385,7 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/progress")
     def update_sailor_progress(course_id, sailor_id):
+        require_assigned_instructor(course_id)
         course = get_course(course_id)
         get_syllabus_for_course(course)
         sailor = get_sailor(course_id, sailor_id)
@@ -296,6 +405,7 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/criteria")
     def update_criterion_for_course(course_id):
+        require_assigned_instructor(course_id)
         course = get_course(course_id)
         get_syllabus_for_course(course)
         criterion = request.form.get("criterion", "")
@@ -316,6 +426,7 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/categories")
     def update_category_for_course(course_id):
+        require_assigned_instructor(course_id)
         course = get_course(course_id)
         get_syllabus_for_course(course)
         section_name = request.form.get("section", "")
@@ -348,6 +459,11 @@ def create_app(syllabus=None, database_path=None):
 
     @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/notes")
     def add_sailor_note(course_id, sailor_id):
+        view, _actor_id = active_view()
+        if view == "instructor":
+            require_assigned_instructor(course_id)
+        elif view != "office":
+            abort(403)
         get_course(course_id)
         sailor = get_sailor(course_id, sailor_id)
         note = request.form.get("note", "").strip()

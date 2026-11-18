@@ -22,9 +22,10 @@ the app. The original console demonstration can still be run with
 ## Data storage
 
 The web app stores data in SQLite at `instance/scapp.sqlite3`. The database is
-created automatically when the app starts. Sailors, course instances,
-enrolments, checklist progress, and dated notes persist when the app is stopped
-and started again. Back up this database file to preserve the data.
+created automatically when the app starts. Sailors, instructor profiles,
+course assignments, course instances, enrolments, checklist progress, and dated
+notes persist when the app is stopped and started again. Back up this database
+file to preserve the data.
 
 The dashboard lists created courses, not every syllabus stage. Create a course
 by giving it a distinct name and choosing a stage from `syllabus.json`; multiple
@@ -43,7 +44,10 @@ can still be viewed, but updates are disabled until that stage is restored.
 
 ## Current scope
 
-This is a local, single-user app with no login or instructor accounts. Sailors
-can be enrolled in multiple courses, and notes are attached to a sailor rather
-than to a specific course, so the same notes appear wherever that sailor is
-viewed.
+This is a local app with no login or authenticated user accounts. The view
+switcher is a testing tool: office can assign instructor profiles to courses,
+instructors only see and update assigned courses, and pupil profiles only see
+their own enrolled course progress. Because there is no authentication yet,
+these views do not provide a security boundary. Sailors can be enrolled in
+multiple courses, and notes are attached to a sailor rather than to a specific
+course, so instructors see the same notes wherever that sailor is viewed.

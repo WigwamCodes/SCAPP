@@ -11,16 +11,22 @@
       <h2>{{ course.name }}</h2>
     </div>
     <div class="row">
+      {% if current_view == 'pupil' %}
+      <span>{{ 'Your progress' if selected_sailor else 'Choose your profile' }}</span>
+      {% else %}
       <span>{{ sailors|length }} sailor{{ '' if sailors|length == 1 else 's' }}</span>
+      {% endif %}
+      {% if current_view == 'office' %}
       <form method="post" action="{{ url_for('remove_course', course_id=course.id) }}"
         onsubmit="return confirm('Delete ' + {{ course.name|tojson }} + '? Enrolments and progress for this course will be permanently removed.')">
         <input type="hidden" name="confirm" value="delete">
         <button class="danger-button" type="submit">Delete course</button>
       </form>
+      {% endif %}
     </div>
   </div>
 
-  {% if syllabus_available %}
+  {% if current_view == 'office' and syllabus_available %}
   <section>
     <h3>Add a sailor</h3>
     <form method="post" action="{{ url_for('add_sailor', course_id=course.id) }}">
@@ -29,7 +35,26 @@
       <button type="submit">Add sailor</button>
     </form>
   </section>
-  {% else %}
+  {% endif %}
+
+  {% if current_view == 'office' %}
+  <section>
+    <h3>Course instructors</h3>
+    {% if course_instructors %}
+    <p class="muted">Assigned: {{ course_instructors|map(attribute='name')|join(', ') }}</p>
+    {% else %}
+    <p class="muted">No instructors assigned yet.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('assign_instructor', course_id=course.id) }}">
+      <label for="instructor-name">Add or assign instructor</label>
+      <input id="instructor-name" name="name" type="text" maxlength="100" required
+        placeholder="Enter an instructor name">
+      <button type="submit">Assign instructor</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if not syllabus_available %}
   <section class="warning-panel">
     <h3>Syllabus stage unavailable</h3>
     <p>
@@ -41,18 +66,26 @@
   </section>
   {% endif %}
 
-  {% if sailors %}
+  {% if display_sailors %}
   <section class="progress-section">
     <div class="row">
       <div>
-        <h3>Progress by pupil and skill</h3>
-        {% if syllabus_available %}
-        <p class="muted">Select a pupil's name to view their notes. Changes save as you make them. Collapse categories with their headings.</p>
+        <h3>{{ 'Your progress' if current_view == 'pupil' else 'Progress by pupil and skill' }}</h3>
+        {% if current_view == 'pupil' %}
+        <p class="muted">Your progress for this course · read-only</p>
+        {% elif current_view == 'instructor' and syllabus_available %}
+        <p class="muted">Changes save as you make them. Collapse categories with their headings.</p>
+        {% elif current_view == 'office' and syllabus_available %}
+        <p class="muted">Course progress overview · read-only</p>
         {% else %}
         <p class="muted">Saved checklist · read-only</p>
         {% endif %}
       </div>
+      {% if current_view == 'pupil' %}
+      <span>{{ selected_sailor.name }}</span>
+      {% else %}
       <span>{{ sailors|length }} pupil{{ '' if sailors|length == 1 else 's' }}</span>
+      {% endif %}
     </div>
 
     <div class="progress-grid-wrap">
@@ -60,18 +93,22 @@
         <thead>
           <tr>
             <th class="grid-skill-heading" scope="col">Skill</th>
-            <th class="grid-bulk-heading" scope="col">All pupils</th>
-            {% for sailor in sailors %}
+            {% if current_view == 'instructor' %}<th class="grid-bulk-heading" scope="col">All pupils</th>{% endif %}
+            {% for sailor in display_sailors %}
             <th class="grid-pupil-heading {% if selected_sailor and selected_sailor.id == sailor.id %}selected{% endif %}"
               scope="col">
+              {% if current_view == 'pupil' %}
+              {{ sailor.name }}
+              {% else %}
               <a href="{{ url_for('course_detail', course_id=course.id, sailor_id=sailor.id) }}">
                 {{ sailor.name }}
               </a>
-              <span class="muted">
+              {% endif %}
+              <span class="muted" data-progress-for="{{ sailor.id }}">
                 {{ progress[sailor.id].complete }}/{{ progress[sailor.id].total }}
                 · {{ progress[sailor.id].percent }}%
               </span>
-              {% if syllabus_available and criteria %}
+              {% if current_view == 'instructor' and syllabus_available and criteria %}
               {% if progress[sailor.id].all_complete %}
               <form class="grid-bulk-form" method="post"
                 action="{{ url_for('update_sailor_progress', course_id=course.id, sailor_id=sailor.id) }}"
@@ -94,13 +131,13 @@
         {% for section in grid_sections %}
         <tbody class="grid-section-group">
           <tr class="grid-section">
-            <th colspan="{{ sailors|length + 2 }}">{{ section.name }}</th>
+            <th colspan="{{ display_sailors|length + (2 if current_view == 'instructor' else 1) }}">{{ section.name }}</th>
           </tr>
         </tbody>
         {% for category in section.categories %}
         <tbody class="grid-category-group">
           <tr class="grid-category">
-            <th colspan="{{ sailors|length + 2 }}">
+            <th colspan="{{ display_sailors|length + (2 if current_view == 'instructor' else 1) }}">
               <details class="grid-category-toggle" open>
                 <summary>{{ section.name }} · {{ category.name }}</summary>
               </details>
@@ -109,7 +146,7 @@
           {% for criterion in category.criteria %}
           <tr class="grid-criterion-row" id="criterion-{{ criteria.index(criterion) }}">
             <th class="grid-skill" scope="row">{{ criterion }}</th>
-            <td class="grid-bulk-cell">
+            {% if current_view == 'instructor' %}<td class="grid-bulk-cell">
               {% if syllabus_available %}
               {% if criterion_complete[criterion] %}
               <form class="grid-bulk-form" method="post"
@@ -138,17 +175,18 @@
               {% else %}
               <span class="muted">—</span>
               {% endif %}
-            </td>
-            {% for sailor in sailors %}
+            </td>{% endif %}
+            {% for sailor in display_sailors %}
             <td class="grid-check-cell">
-              {% if syllabus_available %}
+              {% if current_view == 'instructor' and syllabus_available %}
               <form class="grid-cell-form" method="post"
                 action="{{ url_for('update_sailor_criterion', course_id=course.id, sailor_id=sailor.id) }}">
                 <input type="hidden" name="criterion" value="{{ criterion }}">
                 <label>
                   <input type="checkbox" name="completed" value="on"
                     aria-label="{{ sailor.name }}: {{ criterion }}"
-                    onchange="this.form.submit()"
+                    data-sailor-id="{{ sailor.id }}"
+                    onchange="this.form.requestSubmit()"
                     {% if sailor.progress.get(criterion, false) %}checked{% endif %}>
                   <span class="visually-hidden">Complete {{ criterion }} for {{ sailor.name }}</span>
                 </label>
@@ -170,11 +208,15 @@
   </section>
   {% else %}
   <section>
+    {% if current_view == 'pupil' and sailors %}
+    <p>Select your name above to see your progress.</p>
+    {% else %}
     <p>No sailors enrolled yet. Add sailors above to start tracking this course.</p>
+    {% endif %}
   </section>
   {% endif %}
 
-  {% if selected_sailor %}
+  {% if selected_sailor and current_view == 'instructor' %}
   <section id="notes">
     <h3>{{ selected_sailor.name }}'s notes</h3>
     <form method="post"
@@ -193,6 +235,15 @@
     {% else %}
     <p class="muted">No notes yet.</p>
     {% endif %}
+  </section>
+  {% elif selected_sailor and current_view == 'office' %}
+  <section>
+    <h3>{{ selected_sailor.name }}'s notes</h3>
+    {% if selected_sailor.notes %}
+    {% for note in selected_sailor.notes|reverse %}
+    <div class="note"><div class="muted">{{ note.created_at }}</div><div>{{ note.text }}</div></div>
+    {% endfor %}
+    {% else %}<p class="muted">No notes yet.</p>{% endif %}
     <div class="danger-zone">
       <p class="muted">Deleting this sailor removes them from every course and permanently deletes their notes.</p>
       <form method="post"
@@ -203,13 +254,13 @@
       </form>
     </div>
   </section>
-  {% elif sailors %}
+  {% elif display_sailors and current_view == 'instructor' %}
   <section>
     <p>Select a pupil's name in the table to view and add their notes.</p>
   </section>
   {% endif %}
 </main>
-{% if sailors and syllabus_available %}
+  {% if display_sailors and syllabus_available and current_view == 'instructor' %}
 <script>
   var progressGrid = document.querySelector(".progress-grid");
   var progressGridHeader = progressGrid.querySelector("thead");
@@ -223,6 +274,40 @@
 
   updateProgressGridHeaderHeight();
   window.addEventListener("resize", updateProgressGridHeaderHeight);
+
+  document.querySelectorAll(".grid-cell-form").forEach(function (form) {
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var checkbox = form.querySelector('input[type="checkbox"]');
+      var checked = checkbox.checked;
+      var formData = new FormData(form);
+      checkbox.disabled = true;
+      try {
+        var response = await fetch(form.action, {
+          method: "POST",
+          body: formData,
+          headers: { "X-Requested-With": "fetch" },
+          credentials: "same-origin"
+        });
+        if (!response.ok) throw new Error("Progress could not be saved.");
+
+        var sailorId = checkbox.dataset.sailorId;
+        var boxes = Array.from(document.querySelectorAll(
+          '.grid-cell-form input[data-sailor-id="' + sailorId + '"]'
+        ));
+        var complete = boxes.filter(function (box) { return box.checked; }).length;
+        var total = boxes.length;
+        var percent = total ? Math.round(complete / total * 100) : 0;
+        var summary = document.querySelector('[data-progress-for="' + sailorId + '"]');
+        if (summary) summary.textContent = complete + "/" + total + " · " + percent + "%";
+      } catch (error) {
+        checkbox.checked = !checked;
+        window.alert(error.message);
+      } finally {
+        checkbox.disabled = false;
+      }
+    });
+  });
 
   document.querySelectorAll(".grid-category-toggle").forEach(function (toggle) {
     toggle.addEventListener("toggle", function () {

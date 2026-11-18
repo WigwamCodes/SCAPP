@@ -32,6 +32,20 @@ def init_db(database_path, syllabus):
                 stage TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS instructors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                name_key TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS course_instructors (
+                course_id INTEGER NOT NULL,
+                instructor_id INTEGER NOT NULL,
+                UNIQUE (course_id, instructor_id),
+                FOREIGN KEY (course_id) REFERENCES courses(id),
+                FOREIGN KEY (instructor_id) REFERENCES instructors(id)
+            );
+
             CREATE TABLE IF NOT EXISTS enrolments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sailor_id INTEGER NOT NULL,
@@ -145,10 +159,114 @@ def get_course_by_id(database_path, course_id):
         connection.close()
 
 
+def get_instructors(database_path):
+    connection = get_connection(database_path)
+    try:
+        rows = connection.execute(
+            "SELECT id, name FROM instructors ORDER BY name COLLATE NOCASE"
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        connection.close()
+
+
+def get_sailors(database_path):
+    connection = get_connection(database_path)
+    try:
+        rows = connection.execute(
+            "SELECT id, name FROM sailors ORDER BY name COLLATE NOCASE"
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        connection.close()
+
+
+def add_instructor_to_course(database_path, name, course_id):
+    connection = get_connection(database_path)
+    try:
+        name_key = name.casefold()
+        connection.execute(
+            "INSERT OR IGNORE INTO instructors (name, name_key) VALUES (?, ?)",
+            (name, name_key),
+        )
+        instructor = connection.execute(
+            "SELECT id, name FROM instructors WHERE name_key = ?", (name_key,)
+        ).fetchone()
+        result = connection.execute(
+            "INSERT OR IGNORE INTO course_instructors (course_id, instructor_id) VALUES (?, ?)",
+            (course_id, instructor["id"]),
+        )
+        connection.commit()
+        return {"id": instructor["id"], "name": instructor["name"], "added": result.rowcount > 0}
+    finally:
+        connection.close()
+
+
+def get_instructors_for_course(database_path, course_id):
+    connection = get_connection(database_path)
+    try:
+        rows = connection.execute(
+            """SELECT instructors.id, instructors.name FROM instructors
+               JOIN course_instructors ON course_instructors.instructor_id = instructors.id
+               WHERE course_instructors.course_id = ?
+               ORDER BY instructors.name COLLATE NOCASE""",
+            (course_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        connection.close()
+
+
+def instructor_can_access_course(database_path, instructor_id, course_id):
+    connection = get_connection(database_path)
+    try:
+        return connection.execute(
+            "SELECT 1 FROM course_instructors WHERE instructor_id = ? AND course_id = ?",
+            (instructor_id, course_id),
+        ).fetchone() is not None
+    finally:
+        connection.close()
+
+
+def sailor_can_access_course(database_path, sailor_id, course_id):
+    connection = get_connection(database_path)
+    try:
+        return connection.execute(
+            "SELECT 1 FROM enrolments WHERE sailor_id = ? AND course_id = ?",
+            (sailor_id, course_id),
+        ).fetchone() is not None
+    finally:
+        connection.close()
+
+
+def get_course_ids_for_instructor(database_path, instructor_id):
+    connection = get_connection(database_path)
+    try:
+        rows = connection.execute(
+            "SELECT course_id FROM course_instructors WHERE instructor_id = ?",
+            (instructor_id,),
+        ).fetchall()
+        return {row["course_id"] for row in rows}
+    finally:
+        connection.close()
+
+
+def get_course_ids_for_sailor(database_path, sailor_id):
+    connection = get_connection(database_path)
+    try:
+        rows = connection.execute(
+            "SELECT course_id FROM enrolments WHERE sailor_id = ?", (sailor_id,)
+        ).fetchall()
+        return {row["course_id"] for row in rows}
+    finally:
+        connection.close()
+
+
 def delete_course(database_path, course_id):
     """Delete a course and its progress, preserving sailors elsewhere."""
     connection = get_connection(database_path)
     try:
+        connection.execute("DELETE FROM course_instructors WHERE course_id = ?", (course_id,))
         connection.execute(
             "DELETE FROM progress WHERE enrolment_id IN "
             "(SELECT id FROM enrolments WHERE course_id = ?)", (course_id,)

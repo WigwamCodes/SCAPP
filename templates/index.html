@@ -6,12 +6,21 @@
 <main>
   <div class="row">
     <div>
-      <h2>Courses</h2>
-      <p class="muted">Each course is a separate group using a syllabus stage.</p>
+      {% if current_view == 'office' %}
+      <h2>Office overview</h2>
+      <p class="muted">Review course groups and overall progress.</p>
+      {% elif current_view == 'instructor' %}
+      <h2>Instructor courses</h2>
+      <p class="muted">Open a course to update pupil progress.</p>
+      {% else %}
+      <h2>Pupil progress</h2>
+      <p class="muted">Choose your course, then select your name to see your progress.</p>
+      {% endif %}
     </div>
     <span>{{ courses|length }} course{{ '' if courses|length == 1 else 's' }}</span>
   </div>
 
+  {% if current_view == 'office' %}
   <section>
     <h3>Create a course</h3>
     <form class="course-form" method="post" action="{{ url_for('add_course') }}">
@@ -31,6 +40,7 @@
       <button type="submit">Create course</button>
     </form>
   </section>
+  {% endif %}
 
   {% if courses %}
   <div class="course-grid">
@@ -51,17 +61,25 @@
       <div class="availability-warning">This stage is missing from the current syllabus.</div>
       {% endif %}
       </a>
+      {% if current_view == 'office' %}
       <form method="post" action="{{ url_for('remove_course', course_id=course.id) }}"
         onsubmit="return confirm('Delete ' + {{ course.name|tojson }} + '? Enrolments and progress for this course will be permanently removed.')">
         <input type="hidden" name="confirm" value="delete">
         <button class="danger-button" type="submit">Delete course</button>
       </form>
+      {% endif %}
     </article>
     {% endfor %}
   </div>
   {% else %}
   <section>
+    {% if current_view == 'office' %}
     <p>No courses yet. Create a course above to get started.</p>
+    {% elif current_view == 'instructor' %}
+    <p>No courses are available yet. Ask the office to create one.</p>
+    {% else %}
+    <p>No courses are available yet.</p>
+    {% endif %}
   </section>
   {% endif %}
 </main>
