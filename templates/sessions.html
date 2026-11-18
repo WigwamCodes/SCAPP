@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions · {{ course.name }} · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <p><a href="{{ url_for('course_detail', course_id=course.id) }}">← {{ course.name }}</a></p>
+  <div class="row session-page-heading">
+    <div>
+      <div class="stage-label">{{ course.stage }}</div>
+      <h2>Session plans</h2>
+      <p class="muted">Plan each session, record feedback, and update pupil progress when everyone has achieved the planned criteria.</p>
+    </div>
+    <span>{{ sessions|length }} session{{ '' if sessions|length == 1 else 's' }}</span>
+  </div>
+
+  {% if not syllabus_available %}
+  <section class="warning-panel">
+    <h3>Syllabus stage unavailable</h3>
+    <p>Restore “{{ course.stage }}” in <code>syllabus.json</code> before editing session criteria.</p>
+  </section>
+  {% elif sessions %}
+  {% for session in sessions %}
+  <details class="session-accordion" id="session-{{ session.id }}">
+    <summary>
+      <span class="session-summary-title">Session {{ session.session_number }}</span>
+      <span class="muted">{{ session.session_date if session.session_date else 'Date not set' }}</span>
+      {% if session.is_complete %}
+      <span class="session-status complete">Complete</span>
+      {% elif session.is_done %}
+      <span class="session-status done">Run · feedback needed</span>
+      {% else %}
+      <span class="session-status planned">Planned</span>
+      {% endif %}
+    </summary>
+    <section class="session-card">
+      <form method="post" action="{{ url_for('save_session', course_id=course.id, session_id=session.id) }}">
+        <label for="session-date-{{ session.id }}">Session date</label>
+        <input id="session-date-{{ session.id }}" name="session_date" type="date" value="{{ session.session_date }}">
+
+        <fieldset class="session-criteria-fieldset">
+          <legend>Syllabus criteria planned for this session</legend>
+          {% for section in sections %}
+          <details class="session-criteria-section" open>
+            <summary>{{ section.name }}</summary>
+            {% for category in section.categories %}
+            <div class="session-criteria-category">
+              <h4>{{ category.name }}</h4>
+              {% for criterion in category.criteria %}
+              <label class="session-criterion-choice">
+                <input type="checkbox" name="criteria" value="{{ criterion }}"
+                  {% if criterion in session.criteria %}checked{% endif %}
+                  {% if session.is_done %}disabled{% endif %}>
+                {% if session.is_done and criterion in session.criteria %}
+                <input type="hidden" name="criteria" value="{{ criterion }}">
+                {% endif %}
+                <span>{{ criterion }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            {% endfor %}
+          </details>
+          {% endfor %}
+        </fieldset>
+
+        <label for="session-plan-{{ session.id }}">Session plan</label>
+        <textarea id="session-plan-{{ session.id }}" name="plan" maxlength="10000" rows="6"
+          placeholder="Activities, timings, equipment, or reminders.">{{ session.plan }}</textarea>
+
+        {% if session.is_done %}
+        <div class="session-feedback-grid">
+          <div>
+            <label for="session-feedback-{{ session.id }}">Feedback</label>
+            <textarea id="session-feedback-{{ session.id }}" name="feedback" maxlength="5000" rows="4"
+              placeholder="What went well? What did pupils find difficult?" required>{{ session.feedback }}</textarea>
+          </div>
+          <div>
+            <label for="session-improvements-{{ session.id }}">Ways to improve</label>
+            <textarea id="session-improvements-{{ session.id }}" name="improvements" maxlength="5000" rows="4"
+              placeholder="What would you change next time?" required>{{ session.improvements }}</textarea>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="session-save-row">
+          {% if session.is_complete %}
+          <span class="muted">All planned criteria were marked complete for the enrolled pupils.</span>
+          {% elif session.is_done %}
+          <div class="completion-confirmation">
+            <label>
+              <input type="checkbox" name="all_pupils_completed" value="on">
+              I confirm every pupil achieved all planned criteria.
+            </label>
+            <button type="submit" name="action" value="complete">Mark complete and update pupil progress</button>
+          </div>
+          {% else %}
+          <span class="muted">When run, mark the session done to enter feedback.</span>
+          {% endif %}
+          <div class="session-actions">
+            <button class="secondary-button" type="submit" name="action" value="save">
+              {{ 'Save feedback' if session.is_done else 'Save plan' }}
+            </button>
+            {% if not session.is_done %}
+            <button type="submit" name="action" value="mark_done">Mark session as done</button>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    </section>
+  </details>
+  {% endfor %}
+  {% else %}
+  <section>
+    <h3>No sessions set up yet</h3>
+    <p class="muted">Ask the office to add session slots to this course.</p>
+  </section>
+  {% endif %}
+</main>
+{% endblock %}

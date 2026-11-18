@@ -20,26 +20,116 @@
     <span>{{ courses|length }} course{{ '' if courses|length == 1 else 's' }}</span>
   </div>
 
-  {% if current_view == 'office' %}
-  <section>
-    <h3>Create a course</h3>
-    <form class="course-form" method="post" action="{{ url_for('add_course') }}">
+  {% if current_view == 'pupil' and pupil_awards %}
+  <section class="award-summary">
+    <div class="row">
       <div>
-        <label for="course-name">Course name</label>
-        <input id="course-name" name="name" type="text" maxlength="100"
-          placeholder="For example, Tuesday group" required>
+        <h3>{{ pupil_awards.name }} · Awards</h3>
+        <p class="muted">Your issued certificates and achievements.</p>
       </div>
-      <div>
-        <label for="course-stage">Syllabus stage</label>
-        <select id="course-stage" name="stage" required>
-          {% for stage in stages %}
-          <option value="{{ stage }}">{{ stage }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <button type="submit">Create course</button>
-    </form>
+      <a class="button-link" href="{{ url_for('my_awards') }}">Open my awards</a>
+    </div>
+    {% if pupil_awards.qualifications %}
+    <div class="award-summary-items">
+      {% for award in pupil_awards.qualifications[:3] %}
+      <span class="qualification-badge">{{ award.stage if award.stage else award.name }}</span>
+      {% endfor %}
+      {% if pupil_awards.qualifications|length > 3 %}
+      <span class="muted">and {{ pupil_awards.qualifications|length - 3 }} more</span>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="muted">No awards have been issued yet.</p>
+    {% endif %}
+    {% if pupil_awards.pending_certificates %}
+    <p class="muted">{{ pupil_awards.pending_certificates|length }} certificate{{ '' if pupil_awards.pending_certificates|length == 1 else 's' }} waiting to be issued.</p>
+    {% endif %}
   </section>
+  {% endif %}
+
+  {% if current_view == 'office' %}
+  <section class="course-create-launch">
+    <button type="button" onclick="document.getElementById('course-dialog').showModal()">Create a course</button>
+  </section>
+  <dialog id="course-dialog" class="course-dialog" aria-labelledby="course-dialog-title">
+    <div class="dialog-heading">
+      <div>
+        <div class="stage-label">New course</div>
+        <h2 id="course-dialog-title">Set up a course</h2>
+        <p class="muted">Choose the syllabus, people, and session slots. You can add dates now or later.</p>
+      </div>
+      <button type="button" class="dialog-close" aria-label="Close" onclick="this.closest('dialog').close()">×</button>
+    </div>
+    <form class="course-setup-form" method="post" action="{{ url_for('add_course') }}">
+      <div class="setup-grid">
+        <div>
+          <label for="course-name">Course name</label>
+          <input id="course-name" name="name" type="text" maxlength="100"
+            placeholder="For example, Tuesday group" required>
+        </div>
+        <div>
+          <label for="course-stage">Syllabus used as the base</label>
+          <select id="course-stage" name="stage" required>
+            {% for stage in stages %}
+            <option value="{{ stage }}">{{ stage }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="session-count">Number of sessions</label>
+          <input id="session-count" name="session_count" type="number" min="1" max="30" value="4" required>
+        </div>
+      </div>
+
+      <div class="setup-grid setup-people">
+        <fieldset class="selection-list">
+          <legend>Assign instructor(s)</legend>
+          {% if view_instructors %}
+          {% for instructor in view_instructors %}
+          <label class="choice-row"><input type="checkbox" name="instructor_ids" value="{{ instructor.id }}"> {{ instructor.name }}</label>
+          {% endfor %}
+          {% else %}
+          <p class="muted">No instructor profiles yet. Add a name below.</p>
+          {% endif %}
+        </fieldset>
+        <fieldset class="selection-list">
+          <legend>Enrol existing pupils</legend>
+          {% if view_pupils %}
+          {% for pupil in view_pupils %}
+          <label class="choice-row"><input type="checkbox" name="pupil_ids" value="{{ pupil.id }}"> {{ pupil.name }}</label>
+          {% endfor %}
+          {% else %}
+          <p class="muted">No pupil profiles yet. Add names below.</p>
+          {% endif %}
+        </fieldset>
+      </div>
+
+      <div class="setup-grid setup-add-people">
+        <div>
+          <label for="new-instructors">Add instructor names <span class="muted">(one per line)</span></label>
+          <textarea id="new-instructors" name="new_instructors" rows="2"></textarea>
+        </div>
+        <div>
+          <label for="new-pupils">Add pupil names <span class="muted">(one per line)</span></label>
+          <textarea id="new-pupils" name="new_pupils" rows="2"></textarea>
+        </div>
+      </div>
+
+      <fieldset class="session-date-fieldset">
+        <legend>Session dates <span class="muted">(optional)</span></legend>
+        <div id="session-date-fields" class="session-date-grid">
+          {% for number in range(1, 5) %}
+          <label>Session {{ number }} <input type="date" name="session_dates"></label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="submit">Create course and sessions</button>
+      </div>
+    </form>
+  </dialog>
   {% endif %}
 
   {% if courses %}
@@ -62,6 +152,10 @@
       {% endif %}
       </a>
       {% if current_view == 'office' %}
+      <form method="post" action="{{ url_for('archive_course', course_id=course.id) }}"
+        onsubmit="return confirm('Archive {{ course.name|e }}? You can restore it later from Archived courses.')">
+        <button class="secondary-button" type="submit">Archive course</button>
+      </form>
       <form method="post" action="{{ url_for('remove_course', course_id=course.id) }}"
         onsubmit="return confirm('Delete ' + {{ course.name|tojson }} + '? Enrolments and progress for this course will be permanently removed.')">
         <input type="hidden" name="confirm" value="delete">
@@ -83,4 +177,29 @@
   </section>
   {% endif %}
 </main>
+{% if current_view == 'office' %}
+<script>
+  var sessionCountInput = document.getElementById("session-count");
+  var sessionDateFields = document.getElementById("session-date-fields");
+
+  function renderSessionDates() {
+    var previousDates = Array.from(sessionDateFields.querySelectorAll('input[type="date"]'))
+      .map(function (input) { return input.value; });
+    var count = Math.max(1, Math.min(30, Number(sessionCountInput.value) || 1));
+    sessionDateFields.replaceChildren();
+    for (var index = 0; index < count; index += 1) {
+      var label = document.createElement("label");
+      label.appendChild(document.createTextNode("Session " + (index + 1)));
+      var input = document.createElement("input");
+      input.type = "date";
+      input.name = "session_dates";
+      input.value = previousDates[index] || "";
+      label.appendChild(input);
+      sessionDateFields.appendChild(label);
+    }
+  }
+
+  sessionCountInput.addEventListener("input", renderSessionDates);
+</script>
+{% endif %}
 {% endblock %}

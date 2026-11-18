@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}My awards · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <p><a href="{{ url_for('index') }}">← My courses and progress</a></p>
+  <div class="row">
+    <div>
+      <div class="stage-label">Pupil area</div>
+      <h2>{{ profile.name }} · My awards</h2>
+      <p class="muted">Certificates and qualifications you have earned.</p>
+    </div>
+    <span>{{ profile.qualifications|length }} award{{ '' if profile.qualifications|length == 1 else 's' }}</span>
+  </div>
+
+  <section>
+    <h3>Earned awards</h3>
+    {% if profile.qualifications %}
+    <div class="award-cards">
+      {% for award in profile.qualifications %}
+      <article class="award-card">
+        <div class="award-medallion" aria-hidden="true">★</div>
+        <div>
+          <div class="stage-label">{{ award.stage if award.stage else 'Award' }}</div>
+          {% if not award.stage %}<h3>{{ award.name }}</h3>{% endif %}
+          <p class="muted">Issued {{ award.issued_on }}{% if award.course_name %} · {{ award.course_name }}{% endif %}</p>
+          {% if award.instructors %}<p>Instructor{{ '' if award.instructors|length == 1 else 's' }}: {{ award.instructors|join(', ') }}</p>{% endif %}
+          {% if award.award_comment %}<p class="award-comment">{{ award.award_comment }}</p>{% endif %}
+          {% if award.personal_message and award.personal_message not in award.award_comment %}<p class="award-comment">{{ award.personal_message }}</p>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Your awards will appear here when the office issues them.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h3>Waiting to be issued</h3>
+    {% if profile.pending_certificates %}
+    <div class="award-cards">
+      {% for certificate in profile.pending_certificates %}
+      <article class="award-card pending-award">
+        <div class="award-medallion" aria-hidden="true">…</div>
+        <div>
+          <div class="stage-label">{{ certificate.stage }}</div>
+          <p>Stage criteria completed</p>
+          <p class="muted">Waiting for the office to issue the certificate{% if certificate.course_name %} · {{ certificate.course_name }}{% endif %}.</p>
+          {% if certificate.award_comment %}<p class="award-comment">{{ certificate.award_comment }}</p>{% else %}<p class="muted">Your instructor is preparing your award comment.</p>{% endif %}
+          {% if certificate.personal_message and certificate.personal_message not in certificate.award_comment %}<p class="award-comment">{{ certificate.personal_message }}</p>{% endif %}
+          {% if certificate.instructors %}<p>Instructor{{ '' if certificate.instructors|length == 1 else 's' }}: {{ certificate.instructors|join(', ') }}</p>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">No awards are waiting to be issued.</p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

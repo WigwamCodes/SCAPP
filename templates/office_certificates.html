@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Certificates waiting · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <p><a href="{{ url_for('index') }}">← Office overview</a></p>
+  <div class="row">
+    <div>
+      <h2>Certificates waiting to be issued</h2>
+      <p class="muted">Pupils enter this list when all criteria for a syllabus stage are complete.</p>
+    </div>
+    <span>{{ certificates|length }} waiting</span>
+  </div>
+
+  {% if certificates %}
+  <section>
+    {% for certificate in certificates %}
+    <article class="profile-card row">
+      <div>
+        <h3>{{ certificate.sailor_name }} · {{ certificate.stage }}</h3>
+        <p class="muted">Course: {{ certificate.course_name or 'Course no longer available' }} · Ready since {{ certificate.requested_at }}</p>
+        {% if certificate.instructors %}<p>Instructor{{ '' if certificate.instructors|length == 1 else 's' }}: {{ certificate.instructors|join(', ') }}</p>{% endif %}
+        {% if certificate.award_comment %}<blockquote>{{ certificate.award_comment }}</blockquote>{% else %}<p class="muted">Waiting for an instructor's award comment.</p>{% endif %}
+        {% if certificate.personal_message and certificate.personal_message not in certificate.award_comment %}<blockquote>{{ certificate.personal_message }}</blockquote>{% endif %}
+        <a href="{{ url_for('sailor_profile', sailor_id=certificate.sailor_id) }}">View pupil profile</a>
+      </div>
+      <form method="post" action="{{ url_for('issue_pending_certificate', certificate_id=certificate.id) }}"
+        onsubmit="return confirm('Mark {{ certificate.stage|e }} as issued to {{ certificate.sailor_name|e }}?')">
+        <button type="submit" {% if certificate.stage and not certificate.award_comment %}disabled title="An instructor comment is required before issue"{% endif %}>Mark as issued</button>
+      </form>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section><p>No certificates are waiting to be issued.</p></section>
+  {% endif %}
+</main>
+{% endblock %}

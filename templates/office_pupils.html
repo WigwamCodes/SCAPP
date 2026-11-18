@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Pupils · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <p><a href="{{ url_for('index') }}">← Office overview</a></p>
+  <div class="row">
+    <div>
+      <h2>Pupils and qualifications</h2>
+      <p class="muted">Open a profile to review qualifications and notes from instructors.</p>
+    </div>
+    <span>{{ pupils|length }} pupil{{ '' if pupils|length == 1 else 's' }}</span>
+  </div>
+
+  {% if pupils %}
+  <div class="office-table-wrap">
+    <table class="office-table">
+      <thead><tr><th>Pupil</th><th>Courses</th><th>Qualifications</th><th></th></tr></thead>
+      <tbody>
+        {% for pupil in pupils %}
+        <tr>
+          <th scope="row">{{ pupil.name }}</th>
+          <td>{{ pupil.courses|map(attribute='name')|join(', ') if pupil.courses else '—' }}</td>
+          <td>
+            {% if pupil.qualifications %}
+            {% for qualification in pupil.qualifications %}
+            <span class="qualification-badge">{{ qualification.stage if qualification.stage else qualification.name }}</span>
+            {% endfor %}
+            {% else %}<span class="muted">No issued qualifications yet</span>{% endif %}
+          </td>
+          <td><a href="{{ url_for('sailor_profile', sailor_id=pupil.id) }}">Open profile</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <section><p>No pupils have been added yet.</p></section>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}All sessions · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <p><a href="{{ url_for('index') }}">← Office overview</a></p>
+  <div class="row">
+    <div>
+      <h2>All course sessions</h2>
+      <p class="muted">Office view of session dates, plans, feedback, and progress status.</p>
+    </div>
+    <span>{{ sessions|length }} session{{ '' if sessions|length == 1 else 's' }}</span>
+  </div>
+
+  {% if sessions %}
+  {% for session in sessions %}
+  <details class="session-accordion">
+    <summary>
+      <span class="session-summary-title">{{ session.course_name }} · Session {{ session.session_number }}</span>
+      <span class="muted">{{ session.session_date if session.session_date else 'Date not set' }}</span>
+      {% if session.is_complete %}<span class="session-status complete">Complete</span>
+      {% elif session.is_done %}<span class="session-status done">Run</span>
+      {% else %}<span class="session-status planned">Planned</span>{% endif %}
+    </summary>
+    <section class="session-card">
+      <p class="muted">{{ session.stage }} · Instructor{{ '' if session.instructors|length == 1 else 's' }}: {{ session.instructors|join(', ') if session.instructors else 'None assigned' }}</p>
+      <h3>Planned criteria</h3>
+      {% if session.criteria %}
+      <ul>{% for criterion in session.criteria %}<li>{{ criterion }}</li>{% endfor %}</ul>
+      {% else %}<p class="muted">No criteria selected.</p>{% endif %}
+      <h3>Session plan</h3>
+      {% if session.plan %}<p>{{ session.plan }}</p>{% else %}<p class="muted">No plan entered.</p>{% endif %}
+      {% if session.is_done %}
+      <h3>Feedback</h3>
+      {% if session.feedback %}<p>{{ session.feedback }}</p>{% else %}<p class="muted">No feedback entered.</p>{% endif %}
+      <h3>Ways to improve</h3>
+      {% if session.improvements %}<p>{{ session.improvements }}</p>{% else %}<p class="muted">No improvement notes entered.</p>{% endif %}
+      {% endif %}
+    </section>
+  </details>
+  {% endfor %}
+  {% else %}
+  <section><p>No session slots have been created yet.</p></section>
+  {% endif %}
+</main>
+{% endblock %}

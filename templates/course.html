@@ -17,6 +17,10 @@
       <span>{{ sailors|length }} sailor{{ '' if sailors|length == 1 else 's' }}</span>
       {% endif %}
       {% if current_view == 'office' %}
+      <form method="post" action="{{ url_for('archive_course', course_id=course.id) }}"
+        onsubmit="return confirm('Archive {{ course.name|e }}? You can restore it later from Archived courses.')">
+        <button class="secondary-button" type="submit">Archive course</button>
+      </form>
       <form method="post" action="{{ url_for('remove_course', course_id=course.id) }}"
         onsubmit="return confirm('Delete ' + {{ course.name|tojson }} + '? Enrolments and progress for this course will be permanently removed.')">
         <input type="hidden" name="confirm" value="delete">
@@ -51,6 +55,82 @@
         placeholder="Enter an instructor name">
       <button type="submit">Assign instructor</button>
     </form>
+  </section>
+  <section>
+    <h3>Course sessions</h3>
+    <p class="muted">{{ course_sessions|length }} session slots</p>
+    <form method="post" action="{{ url_for('create_more_sessions', course_id=course.id) }}">
+      <label for="extra-sessions">Add session slots</label>
+      <input id="extra-sessions" name="session_count" type="number" min="1" max="30" value="1" required>
+      <button type="submit">Add sessions</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if current_view == 'instructor' %}
+  <section class="session-nav-panel">
+    <div>
+      <h3>Session plans</h3>
+      <p class="muted">{{ course_sessions|length }} session slots for this course.</p>
+    </div>
+    <a class="button-link" href="{{ url_for('session_planner', course_id=course.id) }}">Open sessions</a>
+  </section>
+  {% endif %}
+
+  {% if pending_award_comments and current_view in ['office', 'instructor'] %}
+  <section id="award-feedback">
+    <h3>Stage award comments</h3>
+    <p class="muted">A comment is required before the office can issue a completed stage award.</p>
+    {% for award in pending_award_comments %}
+    <article class="profile-card">
+      <h4>{{ award.sailor_name }} · {{ award.stage }}</h4>
+      {% if award.award_comment %}<blockquote>{{ award.award_comment }}</blockquote>{% endif %}
+      {% if award.personal_message and award.personal_message not in award.award_comment %}<blockquote>{{ award.personal_message }}</blockquote>{% endif %}
+      {% if current_view == 'instructor' %}
+      <form class="award-feedback-form" method="post"
+        action="{{ url_for('save_award_feedback', course_id=course.id, certificate_id=award.id) }}">
+        <label for="feedback-mode-{{ award.id }}">Message style</label>
+        <select id="feedback-mode-{{ award.id }}" name="feedback_mode" class="award-feedback-mode">
+          <option value="guided" {% if award.feedback_mode != 'personal' %}selected{% endif %}>Guided prompts</option>
+          <option value="personal" {% if award.feedback_mode == 'personal' %}selected{% endif %}>Write a personal message</option>
+        </select>
+        <div class="guided-feedback-fields">
+          <label>Best element of their sailing
+            <select name="best_element" required>
+              {% for value in ['boat handling', 'rigging and preparation', 'sailing upwind', 'sailing downwind', 'safety awareness', 'communication', 'confidence on the water', 'teamwork', 'Other'] %}<option value="{{ value }}" {% if award.best_element == value %}selected{% endif %}>{{ value|capitalize }}</option>{% endfor %}
+            </select>
+          </label>
+          <input name="best_element_custom" type="text" maxlength="150" placeholder="If Other, add a best element">
+          <label>A good attribute they showed
+            <select name="good_attribute" required>
+              {% for value in ['enthusiasm', 'persistence', 'calm focus', 'independence', 'teamwork', 'listening', 'confidence', 'curiosity', 'Other'] %}<option value="{{ value }}" {% if award.good_attribute == value %}selected{% endif %}>{{ value|capitalize }}</option>{% endfor %}
+            </select>
+          </label>
+          <input name="good_attribute_custom" type="text" maxlength="150" placeholder="If Other, add an attribute">
+          <label>A top tip for their next step
+            <select name="top_tip" required>
+              {% for value in ['look around often', 'keep your weight balanced', 'use small, smooth controls', 'plan tacks ahead', 'check the wind before manoeuvres', 'communicate early', 'Other'] %}<option value="{{ value }}" {% if award.top_tip == value %}selected{% endif %}>{{ value|capitalize }}</option>{% endfor %}
+            </select>
+          </label>
+          <input name="top_tip_custom" type="text" maxlength="200" placeholder="If Other, write a top tip">
+          <label>Something to practise between sailing
+            <select name="practice" required>
+              {% for value in ['tying sailing knots', 'naming parts of the boat', 'visualising a tack', 'checking the forecast', 'balancing in a small boat', 'Other'] %}<option value="{{ value }}" {% if award.practice == value %}selected{% endif %}>{{ value|capitalize }}</option>{% endfor %}
+            </select>
+          </label>
+          <input name="practice_custom" type="text" maxlength="200" placeholder="If Other, add a practice idea">
+          <label for="personal-extra-{{ award.id }}">Personal message to add alongside the guidance (optional)</label>
+          <textarea id="personal-extra-{{ award.id }}" name="personal_message" maxlength="1000" rows="3">{{ award.personal_message }}</textarea>
+        </div>
+        <div class="personal-feedback-fields" hidden>
+          <label for="personal-comment-{{ award.id }}">Write your message to {{ award.sailor_name }}</label>
+          <textarea id="personal-comment-{{ award.id }}" name="personal_comment" maxlength="2500" rows="5">{% if award.feedback_mode == 'personal' %}{{ award.award_comment }}{% endif %}</textarea>
+        </div>
+        <button type="submit">Save award comment</button>
+      </form>
+      {% endif %}
+    </article>
+    {% endfor %}
   </section>
   {% endif %}
 
@@ -100,7 +180,7 @@
               {% if current_view == 'pupil' %}
               {{ sailor.name }}
               {% else %}
-              <a href="{{ url_for('course_detail', course_id=course.id, sailor_id=sailor.id) }}">
+              <a href="{{ url_for('sailor_profile', sailor_id=sailor.id, course_id=course.id) }}">
                 {{ sailor.name }}
               </a>
               {% endif %}
@@ -226,9 +306,9 @@
       <button type="submit">Save note</button>
     </form>
     {% if selected_sailor.notes %}
-    {% for note in selected_sailor.notes|reverse %}
+    {% for note in selected_sailor.notes %}
     <div class="note">
-      <div class="muted">{{ note.created_at }}</div>
+      <div class="muted">{{ note.created_at }} · {{ note.author }}{% if note.course_name %} · {{ note.course_name }}{% endif %}</div>
       <div>{{ note.text }}</div>
     </div>
     {% endfor %}
@@ -240,8 +320,8 @@
   <section>
     <h3>{{ selected_sailor.name }}'s notes</h3>
     {% if selected_sailor.notes %}
-    {% for note in selected_sailor.notes|reverse %}
-    <div class="note"><div class="muted">{{ note.created_at }}</div><div>{{ note.text }}</div></div>
+    {% for note in selected_sailor.notes %}
+    <div class="note"><div class="muted">{{ note.created_at }} · {{ note.author }}{% if note.course_name %} · {{ note.course_name }}{% endif %}</div><div>{{ note.text }}</div></div>
     {% endfor %}
     {% else %}<p class="muted">No notes yet.</p>{% endif %}
     <div class="danger-zone">
@@ -260,6 +340,26 @@
   </section>
   {% endif %}
 </main>
+<script>
+  document.querySelectorAll(".award-feedback-form").forEach(function (form) {
+    var mode = form.querySelector(".award-feedback-mode");
+    var guided = form.querySelector(".guided-feedback-fields");
+    var personal = form.querySelector(".personal-feedback-fields");
+    function updateMode() {
+      var isGuided = mode.value === "guided";
+      guided.hidden = !isGuided;
+      personal.hidden = isGuided;
+      guided.querySelectorAll("input, select, textarea").forEach(function (field) {
+        field.disabled = !isGuided;
+      });
+      personal.querySelectorAll("textarea").forEach(function (field) {
+        field.disabled = isGuided;
+      });
+    }
+    mode.addEventListener("change", updateMode);
+    updateMode();
+  });
+</script>
   {% if display_sailors and syllabus_available and current_view == 'instructor' %}
 <script>
   var progressGrid = document.querySelector(".progress-grid");

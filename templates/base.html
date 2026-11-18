@@ -98,6 +98,29 @@
       background: white;
     }
 
+    .office-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+    }
+
+    .pupil-nav {
+      display: flex;
+      align-items: center;
+    }
+
+    .pupil-nav a {
+      color: #d7e8ec;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .office-nav a {
+      color: #d7e8ec;
+      font-size: 0.9rem;
+      font-weight: 650;
+    }
+
     h2 {
       margin-bottom: 0.4rem;
       font-size: 1.55rem;
@@ -119,7 +142,9 @@
 
     input[type="text"],
     textarea,
-    select {
+    select,
+    input[type="date"],
+    input[type="number"] {
       box-sizing: border-box;
       max-width: 100%;
       min-height: 2.6rem;
@@ -133,7 +158,9 @@
 
     input[type="text"]:focus,
     textarea:focus,
-    select:focus {
+    select:focus,
+    input[type="date"]:focus,
+    input[type="number"]:focus {
       outline: 3px solid rgba(23, 107, 115, 0.16);
       border-color: #176b73;
     }
@@ -459,21 +486,461 @@
       border-top: 1px solid #ead6d6;
     }
 
+    .course-create-launch {
+      padding: 0.65rem 0.8rem;
+    }
+
+    .course-dialog {
+      box-sizing: border-box;
+      width: min(760px, calc(100vw - 2rem));
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid #dfe8eb;
+      border-radius: 14px;
+      padding: 1.25rem;
+      color: #172b3a;
+      box-shadow: 0 20px 60px rgba(18, 59, 80, 0.25);
+    }
+
+    .course-dialog::backdrop {
+      background: rgba(10, 31, 42, 0.58);
+    }
+
+    .dialog-heading,
+    .dialog-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .dialog-heading h2 {
+      margin-bottom: 0.35rem;
+    }
+
+    .dialog-close {
+      min-width: 2.2rem;
+      min-height: 2.2rem;
+      padding: 0.2rem;
+      color: #334c59;
+      background: #e8f0f1;
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .course-setup-form {
+      margin-top: 1rem;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .setup-grid input[type="text"],
+    .setup-grid input[type="number"],
+    .setup-grid select,
+    .setup-grid textarea {
+      width: 100%;
+    }
+
+    .selection-list,
+    .session-date-fieldset {
+      min-width: 0;
+      margin: 0;
+      border: 1px solid #dfe8eb;
+      border-radius: 8px;
+      padding: 0.65rem;
+    }
+
+    .selection-list legend,
+    .session-date-fieldset legend {
+      padding: 0 0.25rem;
+      font-weight: 700;
+    }
+
+    .selection-list {
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .choice-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0.2rem 0;
+      font-weight: 450;
+    }
+
+    .choice-row input {
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+      accent-color: #176b73;
+    }
+
+    .session-date-fieldset {
+      margin-bottom: 1rem;
+    }
+
+    .session-date-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .session-date-grid label {
+      margin: 0;
+      font-size: 0.85rem;
+    }
+
+    .session-date-grid input {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      margin-top: 0.2rem;
+    }
+
+    .dialog-actions {
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .secondary-button {
+      color: #334c59;
+      background: #e8f0f1;
+    }
+
+    .session-nav-panel,
+    .session-save-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .session-accordion {
+      margin: 0.65rem 0;
+      border: 1px solid #dfe8eb;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 5px 18px rgba(18, 59, 80, 0.05);
+    }
+
+    .session-accordion > summary {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      list-style-position: inside;
+      background: #f8fbfb;
+    }
+
+    .session-summary-title {
+      color: #123b50;
+      font-weight: 750;
+    }
+
+    .session-status {
+      margin-left: auto;
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .session-status.planned {
+      color: #536873;
+      background: #e8edef;
+    }
+
+    .session-status.done {
+      color: #78480b;
+      background: #fff0d4;
+    }
+
+    .session-status.complete {
+      color: #145744;
+      background: #dff2e9;
+    }
+
+    .session-card {
+      margin: 0;
+      border: 0;
+      border-top: 1px solid #dfe8eb;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .session-feedback-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .session-feedback-grid textarea {
+      width: 100%;
+    }
+
+    .completion-confirmation {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .completion-confirmation label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .completion-confirmation input {
+      flex: 0 0 auto;
+      margin: 0.2rem 0 0;
+    }
+
+    .session-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    .profile-card {
+      margin: 0.65rem 0;
+      border: 1px solid #dfe8eb;
+      border-radius: 10px;
+      padding: 0.85rem;
+      background: white;
+    }
+
+    .profile-card h3,
+    .profile-card p:last-child {
+      margin-bottom: 0.35rem;
+    }
+
+    .qualification-list,
+    .course-list,
+    .note-list {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .qualification-badge {
+      display: inline-block;
+      margin: 0.15rem 0.25rem 0.15rem 0;
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+      color: #145744;
+      background: #dff2e9;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .award-summary-items {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0.5rem 0;
+    }
+
+    .award-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .award-card {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      border: 1px solid #c9e4d7;
+      border-radius: 12px;
+      padding: 0.9rem;
+      background: #f4fbf7;
+    }
+
+    .award-card p {
+      margin-bottom: 0.25rem;
+    }
+
+    .pending-award {
+      border-color: #f0d9ad;
+      background: #fffaf0;
+    }
+
+    .award-medallion {
+      display: grid;
+      flex: 0 0 3rem;
+      width: 3rem;
+      height: 3rem;
+      place-items: center;
+      border: 2px solid #8eafb2;
+      border-radius: 50%;
+      color: #145744;
+      background: white;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .pending-award .award-medallion {
+      color: #78480b;
+      border-color: #d3b572;
+    }
+
+    .pending-badge {
+      color: #78480b;
+      background: #fff0d4;
+    }
+
+    .office-table-wrap {
+      overflow-x: auto;
+    }
+
+    .office-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .office-table th,
+    .office-table td {
+      padding: 0.6rem;
+      border-bottom: 1px solid #e6edef;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .session-nav-panel h3,
+    .session-nav-panel p {
+      margin-bottom: 0.25rem;
+    }
+
+    .button-link {
+      display: inline-block;
+      padding: 0.6rem 0.85rem;
+      border-radius: 5px;
+      color: white;
+      background: #176b73;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .button-link:hover {
+      color: white;
+      background: #10545b;
+    }
+
+    .session-card h3 {
+      margin: 0.25rem 0 0.75rem;
+    }
+
+    .session-card input[type="date"] {
+      display: block;
+      width: min(100%, 250px);
+      margin-bottom: 1rem;
+    }
+
+    .session-criteria-fieldset {
+      margin: 0 0 1rem;
+      border: 1px solid #dfe8eb;
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    .session-criteria-fieldset legend {
+      padding: 0 0.25rem;
+      font-weight: 700;
+    }
+
+    .session-criteria-section {
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #e6edef;
+    }
+
+    .session-criteria-section:last-child {
+      border-bottom: 0;
+    }
+
+    .session-criteria-section summary {
+      color: #123b50;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .session-criteria-category {
+      margin: 0.55rem 0 0.75rem 1rem;
+    }
+
+    .session-criteria-category h4 {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+    }
+
+    .session-criterion-choice {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      margin: 0.3rem 0;
+      font-weight: 450;
+    }
+
+    .session-criterion-choice input {
+      flex: 0 0 auto;
+      width: 1rem;
+      height: 1rem;
+      margin: 0.15rem 0 0;
+      accent-color: #176b73;
+    }
+
+    .session-save-row {
+      margin-top: 0.75rem;
+    }
+
     @media (max-width: 700px) {
       body {
-        padding: 0.75rem;
+        padding: 0.5rem;
       }
 
       header {
-        padding: 1rem;
+        padding: 0.75rem;
       }
 
       section {
-        padding: 1rem;
+        padding: 0.75rem;
       }
+
+      header { gap: 0.65rem; }
+      header h1 { font-size: 1.2rem; }
+      .office-nav { gap: 0.45rem 0.8rem; }
+      .view-switcher { width: 100%; }
+      .view-switcher select { flex: 1; min-width: 0; }
+      .progress-grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .row { align-items: flex-start; gap: 0.5rem; }
+      .row > span { white-space: nowrap; }
+      .course-grid { grid-template-columns: 1fr; }
+      .session-actions { flex-wrap: wrap; }
 
       .course-form {
         grid-template-columns: 1fr;
+      }
+
+      .setup-grid,
+      .session-date-grid,
+      .session-feedback-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .course-dialog {
+        padding: 1rem;
       }
 
       input[type="text"],
@@ -488,6 +955,18 @@
   <header>
     <h1><a href="{{ url_for('index') }}">Sailing Progress Tracker</a></h1>
     <p>Track course groups and sailors against the sailing syllabus.</p>
+    {% if current_view == 'office' %}
+    <nav class="office-nav" aria-label="Office tools">
+      <a href="{{ url_for('office_sessions') }}">All sessions</a>
+      <a href="{{ url_for('office_pupils') }}">Pupils and qualifications</a>
+      <a href="{{ url_for('office_certificates') }}">Certificates waiting</a>
+      <a href="{{ url_for('office_archived_courses') }}">Archived courses</a>
+    </nav>
+    {% elif current_view == 'pupil' %}
+    <nav class="pupil-nav" aria-label="Pupil tools">
+      <a href="{{ url_for('my_awards') }}">My awards</a>
+    </nav>
+    {% endif %}
     <form class="view-switcher" method="post" action="{{ url_for('change_view') }}">
       <label for="view">View</label>
       <select id="view" name="view" onchange="this.form.submit()">

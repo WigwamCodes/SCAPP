@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.name }} · Pupil profile{% endblock %}
+
+{% block content %}
+<main>
+  {% if current_view == 'office' %}
+  <p><a href="{{ url_for('office_pupils') }}">← All pupils</a></p>
+  {% else %}
+  <p><a href="{{ url_for('index') }}">← Assigned courses</a></p>
+  {% endif %}
+  <div class="row">
+    <div>
+      <div class="stage-label">Pupil profile</div>
+      <h2>{{ profile.name }}</h2>
+    </div>
+    <span>{{ profile.courses|length }} course{{ '' if profile.courses|length == 1 else 's' }}</span>
+  </div>
+
+  <section>
+    <h3>Qualifications</h3>
+    {% if profile.qualifications %}
+    <div class="qualification-list">
+      {% for qualification in profile.qualifications %}
+      <article class="profile-card">
+        <span class="qualification-badge">{{ qualification.stage if qualification.stage else qualification.name }}</span>
+        <span class="muted">Issued {{ qualification.issued_on }}{% if qualification.issued_by %} · {{ qualification.issued_by }}{% endif %}</span>
+        {% if qualification.instructors %}<span class="muted">Instructors: {{ qualification.instructors|join(', ') }}</span>{% endif %}
+        {% if qualification.award_comment %}<blockquote>{{ qualification.award_comment }}</blockquote>{% endif %}
+        {% if qualification.personal_message and qualification.personal_message not in qualification.award_comment %}<blockquote>{{ qualification.personal_message }}</blockquote>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">No qualifications have been issued yet.</p>{% endif %}
+    {% if current_view == 'office' and profile.pending_certificates %}
+    <h3>Waiting to be issued</h3>
+    {% for certificate in profile.pending_certificates %}
+    <p><span class="qualification-badge pending-badge">{{ certificate.stage }} · pending</span></p>
+    {% if certificate.award_comment %}<blockquote>{{ certificate.award_comment }}</blockquote>{% else %}<p class="muted">Instructor comment still required</p>{% endif %}
+    {% if certificate.personal_message and certificate.personal_message not in certificate.award_comment %}<blockquote>{{ certificate.personal_message }}</blockquote>{% endif %}
+    {% endfor %}
+    {% endif %}
+    {% if current_view == 'office' %}
+    <form method="post" action="{{ url_for('add_office_pupil_award', sailor_id=profile.id) }}">
+      <label for="accolade-name">Record an accolade</label>
+      <input id="accolade-name" name="name" type="text" maxlength="100"
+        placeholder="For example, Club Regatta Winner" required>
+      <button type="submit">Add to awards</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section>
+    <h3>Courses</h3>
+    {% if available_courses %}
+    <div class="course-list">
+      {% for course in available_courses %}
+      <p><a href="{{ url_for('course_detail', course_id=course.id) }}">{{ course.name }}</a> <span class="muted">· {{ course.stage }}</span></p>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">No courses.</p>{% endif %}
+  </section>
+
+  <section>
+    <h3>Instructor notes</h3>
+    {% if profile.notes %}
+    <div class="note-list">
+      {% for note in profile.notes %}
+      <article class="note">
+        <div class="muted">{{ note.created_at }} · {{ note.author }}{% if note.course_name %} · {{ note.course_name }}{% endif %}</div>
+        <div>{{ note.text }}</div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">No notes yet.</p>{% endif %}
+
+    {% if current_view == 'instructor' and selected_course_id %}
+    <form method="post" action="{{ url_for('add_sailor_note', course_id=selected_course_id, sailor_id=profile.id) }}">
+      <label for="profile-note">Add a note as this instructor</label>
+      <textarea id="profile-note" name="note" maxlength="2000" required></textarea>
+      <button type="submit">Save note</button>
+    </form>
+    {% endif %}
+  </section>
+
+  {% if current_view == 'office' %}
+  <section class="danger-zone">
+    <h3>Remove pupil</h3>
+    <p class="muted">This permanently removes {{ profile.name }} from all courses and deletes their notes and certificates.</p>
+    <form method="post" action="{{ url_for('delete_office_pupil', sailor_id=profile.id) }}"
+      onsubmit="return confirm('Permanently delete ' + {{ profile.name|tojson }} + ' and all of their records?')">
+      <input type="hidden" name="confirm" value="delete">
+      <button class="danger-button" type="submit">Delete pupil</button>
+    </form>
+  </section>
+  {% endif %}
+</main>
+{% endblock %}

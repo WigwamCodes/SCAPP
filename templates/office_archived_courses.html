@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Archived courses · Sailing Progress Tracker{% endblock %}
+
+{% block content %}
+<main>
+  <p><a href="{{ url_for('index') }}">← Active courses</a></p>
+  <div class="row">
+    <div><h2>Archived courses</h2><p class="muted">Completed courses are kept here and can be restored.</p></div>
+    <span>{{ courses|length }} course{{ '' if courses|length == 1 else 's' }}</span>
+  </div>
+  {% if courses %}
+  <div class="course-grid">
+    {% for course in courses %}
+    <article class="course-card">
+      <div class="stage-label">{{ course.stage }}</div>
+      <h3>{{ course.name }}</h3>
+      <p>{{ course.sailor_count }} sailor{{ '' if course.sailor_count == 1 else 's' }} · archived {{ course.archived_at }}</p>
+      <p class="muted">{{ course.completed_criteria }}/{{ course.total_criteria }} criteria complete</p>
+      <form method="post" action="{{ url_for('restore_course', course_id=course.id) }}">
+        <button type="submit">Restore course</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <section><p>No courses have been archived.</p></section>
+  {% endif %}
+</main>
+{% endblock %}
