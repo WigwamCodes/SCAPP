@@ -109,6 +109,7 @@ class TrackerWebTests(unittest.TestCase):
         self.assertIn(b"Can steer", response.data)
         self.assertIn(b"0/2", response.data)
         self.assertIn(b'class="progress-grid"', response.data)
+        self.assertIn(b'<details class="grid-category-toggle" open>', response.data)
         self.assertIn(b'aria-label="Alex: Can steer"', response.data)
         self.assertNotIn(b'id="bulk-criterion"', response.data)
 

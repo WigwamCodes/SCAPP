@@ -8,6 +8,8 @@ from database import (
     add_note,
     add_sailor_to_course,
     create_course,
+    delete_course,
+    delete_sailor,
     get_course_by_id,
     get_courses,
     get_sailors_for_course,
@@ -138,6 +140,15 @@ def create_app(syllabus=None, database_path=None):
         flash(f"Created {name} based on {stage}.", "success")
         return course_redirect(course_id)
 
+    @app.post("/courses/<int:course_id>/delete")
+    def remove_course(course_id):
+        course = get_course(course_id)
+        if request.form.get("confirm") != "delete":
+            abort(400, description="Confirm course deletion to continue.")
+        delete_course(database_path, course_id)
+        flash(f"Deleted {course['name']} and its course progress.", "success")
+        return redirect(url_for("index"))
+
     @app.get("/courses/<int:course_id>")
     def course_detail(course_id):
         course = get_course(course_id)
@@ -224,6 +235,19 @@ def create_app(syllabus=None, database_path=None):
         )
         flash(f"Added {name} to {course['name']}.", "success")
         return course_redirect(course_id, sailor["id"])
+
+    @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/delete")
+    def remove_sailor(course_id, sailor_id):
+        course = get_course(course_id)
+        sailor = get_sailor(course_id, sailor_id)
+        if request.form.get("confirm") != "delete":
+            abort(400, description="Confirm sailor deletion to continue.")
+        delete_sailor(database_path, sailor_id)
+        flash(
+            f"Deleted {sailor['name']} and their records from all courses, including notes.",
+            "success",
+        )
+        return course_redirect(course_id)
 
     @app.post("/courses/<int:course_id>/sailors/<int:sailor_id>/criteria")
     def update_sailor_criterion(course_id, sailor_id):

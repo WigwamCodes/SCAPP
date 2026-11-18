@@ -145,6 +145,40 @@ def get_course_by_id(database_path, course_id):
         connection.close()
 
 
+def delete_course(database_path, course_id):
+    """Delete a course and its progress, preserving sailors elsewhere."""
+    connection = get_connection(database_path)
+    try:
+        connection.execute(
+            "DELETE FROM progress WHERE enrolment_id IN "
+            "(SELECT id FROM enrolments WHERE course_id = ?)", (course_id,)
+        )
+        connection.execute("DELETE FROM enrolments WHERE course_id = ?", (course_id,))
+        result = connection.execute("DELETE FROM courses WHERE id = ?", (course_id,))
+        connection.commit()
+        return result.rowcount > 0
+    finally:
+        connection.close()
+
+
+def delete_sailor(database_path, sailor_id):
+    """Delete a sailor and all enrolments, progress, notes, and certificates."""
+    connection = get_connection(database_path)
+    try:
+        connection.execute(
+            "DELETE FROM progress WHERE enrolment_id IN "
+            "(SELECT id FROM enrolments WHERE sailor_id = ?)", (sailor_id,)
+        )
+        connection.execute("DELETE FROM enrolments WHERE sailor_id = ?", (sailor_id,))
+        connection.execute("DELETE FROM notes WHERE sailor_id = ?", (sailor_id,))
+        connection.execute("DELETE FROM certificates WHERE sailor_id = ?", (sailor_id,))
+        result = connection.execute("DELETE FROM sailors WHERE id = ?", (sailor_id,))
+        connection.commit()
+        return result.rowcount > 0
+    finally:
+        connection.close()
+
+
 def add_sailor_to_course(database_path, name, course_id, criteria):
     """Save a sailor, enrol them on a course and initialise their progress."""
 

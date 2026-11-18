@@ -10,6 +10,7 @@ Build a practical tool for sailing instructors to track pupils' progress against
 
 - [ ] Redesign course progress as a grid of skills and pupils, with a checkbox at each intersection.
 - [ ] Let an instructor mark one skill complete for everyone, or all skills complete for one pupil. Make the scope of each bulk action obvious.
+- [ ] Be able to delete sailors and courses
 - [ ] Keep syllabus categories clear and make the grid usable on smaller screens.
 - [ ] Try the proposed workflow and adjust it before adding more features.
 
@@ -51,7 +52,7 @@ Build a practical tool for sailing instructors to track pupils' progress against
 ### Reports and certificates
 
 - _What progress summaries, printouts, or certificate features would you want?_
-- [ ] Course reports and student reports should be available
+- [ ] Course reports and student reports should be available showing 
 
 ### Scheduling and administration
 

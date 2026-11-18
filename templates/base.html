@@ -16,16 +16,16 @@
     }
 
     body {
-      max-width: 1160px;
+      max-width: 1680px;
       margin: 0 auto;
-      padding: 1.25rem;
+      padding: 0.75rem 1rem;
     }
 
     header {
       background: white;
-      margin-bottom: 1rem;
+      margin-bottom: 0.65rem;
       border-radius: 14px;
-      padding: 1.25rem 1.5rem;
+      padding: 0.85rem 1rem;
       box-shadow: 0 8px 24px rgba(18, 59, 80, 0.08);
     }
 
@@ -35,10 +35,10 @@
     }
 
     section {
-      margin-bottom: 1rem;
+      margin-bottom: 0.65rem;
       border: 1px solid #dfe8eb;
       border-radius: 14px;
-      padding: 1.25rem 1.5rem;
+      padding: 0.85rem 1rem;
       background: white;
       box-shadow: 0 5px 18px rgba(18, 59, 80, 0.05);
     }
@@ -174,7 +174,7 @@
 
     .course-card {
       display: block;
-      padding: 1.1rem;
+      padding: 0.8rem;
       border: 1px solid #dce6e8;
       border-radius: 12px;
       color: inherit;
@@ -189,6 +189,12 @@
       border-color: #176b73;
       box-shadow: 0 7px 18px rgba(18, 59, 80, 0.11);
       transform: translateY(-2px);
+    }
+
+    .course-card-link {
+      display: block;
+      color: inherit;
+      text-decoration: none;
     }
 
     .course-card h3 {
@@ -251,20 +257,19 @@
     .progress-grid-wrap {
       max-height: 72vh;
       overflow: auto;
-      border: 1px solid #dfe8eb;
-      border-radius: 10px;
     }
 
     .progress-grid {
       width: 100%;
-      min-width: max-content;
+      min-width: max(100%, 900px);
       border-spacing: 0;
       border-collapse: separate;
+      table-layout: fixed;
     }
 
     .progress-grid th,
     .progress-grid td {
-      padding: 0.65rem 0.75rem;
+      padding: 0.4rem 0.55rem;
       border-bottom: 1px solid #e6edef;
     }
 
@@ -272,6 +277,7 @@
       position: sticky;
       top: 0;
       z-index: 3;
+      height: 6.5rem;
       background: white;
       text-align: center;
       vertical-align: top;
@@ -281,34 +287,47 @@
     .progress-grid .grid-skill {
       position: sticky;
       left: 0;
-      z-index: 2;
-      width: 30rem;
-      min-width: 24rem;
-      max-width: 34rem;
+      z-index: 4;
+      width: 34%;
+      min-width: 0;
       background: white;
       text-align: left;
+      overflow-wrap: anywhere;
     }
 
     .progress-grid thead .grid-skill-heading {
-      z-index: 5;
+      z-index: 7;
     }
 
     .grid-bulk-heading,
     .grid-bulk-cell {
-      min-width: 9rem;
+      position: sticky;
+      left: 34%;
+      z-index: 3;
+      width: 8rem;
+      min-width: 8rem;
+      background: white;
       text-align: center;
+    }
+
+    .progress-grid thead .grid-bulk-heading {
+      z-index: 6;
     }
 
     .grid-pupil-heading,
     .grid-check-cell {
-      min-width: 9rem;
+      min-width: 0;
       text-align: center;
+      overflow-wrap: anywhere;
     }
 
     .grid-pupil-heading a {
       display: block;
       margin-bottom: 0.2rem;
       font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .grid-pupil-heading.selected {
@@ -321,12 +340,23 @@
       background: #e8f0f1;
       color: #123b50;
       text-align: left;
+      overflow-wrap: anywhere;
     }
 
     .grid-category th {
+      position: sticky;
+      top: var(--grid-header-height, 6.5rem);
+      z-index: 2;
       background: #f5f8f8;
       color: #334c59;
       text-align: left;
+    }
+
+    .grid-category-toggle summary {
+      padding: 0.65rem 0.75rem;
+      cursor: pointer;
+      font-weight: 700;
+      list-style-position: inside;
     }
 
     .grid-bulk-form,
@@ -340,7 +370,15 @@
       min-height: 2.1rem;
       padding: 0.35rem 0.55rem;
       font-size: 0.82rem;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.2;
+    }
+
+    .progress-section {
+      padding: 0.75rem 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
     }
 
     .grid-cell-form label {
@@ -385,6 +423,20 @@
 
     .warning-panel p:last-child {
       margin-bottom: 0;
+    }
+
+    .danger-button {
+      background: #a33131;
+    }
+
+    .danger-button:hover {
+      background: #812626;
+    }
+
+    .danger-zone {
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #ead6d6;
     }
 
     @media (max-width: 700px) {

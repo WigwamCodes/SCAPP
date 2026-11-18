@@ -10,7 +10,14 @@
       <div class="muted">{{ course.stage }}</div>
       <h2>{{ course.name }}</h2>
     </div>
-    <span>{{ sailors|length }} sailor{{ '' if sailors|length == 1 else 's' }}</span>
+    <div class="row">
+      <span>{{ sailors|length }} sailor{{ '' if sailors|length == 1 else 's' }}</span>
+      <form method="post" action="{{ url_for('remove_course', course_id=course.id) }}"
+        onsubmit="return confirm('Delete ' + {{ course.name|tojson }} + '? Enrolments and progress for this course will be permanently removed.')">
+        <input type="hidden" name="confirm" value="delete">
+        <button class="danger-button" type="submit">Delete course</button>
+      </form>
+    </div>
   </div>
 
   {% if syllabus_available %}
@@ -35,12 +42,12 @@
   {% endif %}
 
   {% if sailors %}
-  <section>
+  <section class="progress-section">
     <div class="row">
       <div>
         <h3>Progress by pupil and skill</h3>
         {% if syllabus_available %}
-        <p class="muted">Select a pupil's name to view their notes. Changes save as you make them.</p>
+        <p class="muted">Select a pupil's name to view their notes. Changes save as you make them. Collapse categories with their headings.</p>
         {% else %}
         <p class="muted">Saved checklist · read-only</p>
         {% endif %}
@@ -84,17 +91,23 @@
             {% endfor %}
           </tr>
         </thead>
-        <tbody>
-          {% for section in grid_sections %}
+        {% for section in grid_sections %}
+        <tbody class="grid-section-group">
           <tr class="grid-section">
             <th colspan="{{ sailors|length + 2 }}">{{ section.name }}</th>
           </tr>
-          {% for category in section.categories %}
+        </tbody>
+        {% for category in section.categories %}
+        <tbody class="grid-category-group">
           <tr class="grid-category">
-            <th colspan="{{ sailors|length + 2 }}">{{ category.name }}</th>
+            <th colspan="{{ sailors|length + 2 }}">
+              <details class="grid-category-toggle" open>
+                <summary>{{ section.name }} · {{ category.name }}</summary>
+              </details>
+            </th>
           </tr>
           {% for criterion in category.criteria %}
-          <tr id="criterion-{{ criteria.index(criterion) }}">
+          <tr class="grid-criterion-row" id="criterion-{{ criteria.index(criterion) }}">
             <th class="grid-skill" scope="row">{{ criterion }}</th>
             <td class="grid-bulk-cell">
               {% if syllabus_available %}
@@ -149,9 +162,9 @@
             {% endfor %}
           </tr>
           {% endfor %}
-          {% endfor %}
-          {% endfor %}
         </tbody>
+        {% endfor %}
+        {% endfor %}
       </table>
     </div>
   </section>
@@ -180,6 +193,15 @@
     {% else %}
     <p class="muted">No notes yet.</p>
     {% endif %}
+    <div class="danger-zone">
+      <p class="muted">Deleting this sailor removes them from every course and permanently deletes their notes.</p>
+      <form method="post"
+        action="{{ url_for('remove_sailor', course_id=course.id, sailor_id=selected_sailor.id) }}"
+        onsubmit="return confirm('Permanently delete ' + {{ selected_sailor.name|tojson }} + ' from all courses, including all notes and progress?')">
+        <input type="hidden" name="confirm" value="delete">
+        <button class="danger-button" type="submit">Delete sailor</button>
+      </form>
+    </div>
   </section>
   {% elif sailors %}
   <section>
@@ -187,4 +209,29 @@
   </section>
   {% endif %}
 </main>
+{% if sailors and syllabus_available %}
+<script>
+  var progressGrid = document.querySelector(".progress-grid");
+  var progressGridHeader = progressGrid.querySelector("thead");
+
+  function updateProgressGridHeaderHeight() {
+    progressGrid.style.setProperty(
+      "--grid-header-height",
+      progressGridHeader.getBoundingClientRect().height + "px"
+    );
+  }
+
+  updateProgressGridHeaderHeight();
+  window.addEventListener("resize", updateProgressGridHeaderHeight);
+
+  document.querySelectorAll(".grid-category-toggle").forEach(function (toggle) {
+    toggle.addEventListener("toggle", function () {
+      var group = toggle.closest(".grid-category-group");
+      group.querySelectorAll(".grid-criterion-row").forEach(function (row) {
+        row.hidden = !toggle.open;
+      });
+    });
+  });
+</script>
+{% endif %}
 {% endblock %}
